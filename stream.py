@@ -60,8 +60,6 @@ class Stream:
     def stream_data_producer(self): # FIXME better name
         queue = self._q_buffer
 
-        len_prfs = len(list(self.env.stream_profiles()))
-
         while self.active():
 
             succ, fset = self.syncer.try_wait_for_frames(self.opts.wait_data_timeout)
