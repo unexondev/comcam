@@ -1,8 +1,8 @@
 from pyrealsense2 import context, option, syncer
-from pyrealsense2 import sensor as rs_sensor
 from pyrealsense2 import stream_profile as rs_stream_profile
 from pyrealsense2 import video_stream_profile as rs_video_stream_profile
 
+from .core.sensors import Sensor
 from .core.mixins.optimization import OptimizationMixin
 from .core.stream_profile import StreamProfile
 
@@ -57,7 +57,7 @@ class Environment(OptimizationMixin):
 
     @dataclass
     class SensorContext:
-        sensor : rs_sensor
+        sensor : Sensor
         profile : rs_stream_profile
         def __hash__(self):
             return hash((
@@ -81,6 +81,7 @@ class Environment(OptimizationMixin):
         prf_to_sensor_ctx = {}
 
         # map profiles with sensors
+        # FIXME
         sensors = context.query_all_sensors()
         prfs_not_found = stream_profiles.copy()
         for sensor in sensors:
@@ -90,7 +91,7 @@ class Environment(OptimizationMixin):
 
                 if not prfs_not_found: break
 
-                for profile in prfs_not_found:
+                for prf_stream in prfs_not_found:
 
                     if not rs_prf_stream.is_video_stream_profile():
                         continue
@@ -98,14 +99,11 @@ class Environment(OptimizationMixin):
                     rs_prf_stream : rs_video_stream_profile \
                         = rs_prf_stream.as_video_stream_profile()
 
-                    if rs_prf_stream.stream_type() == profile.stream_type and \
-                        rs_prf_stream.width() == profile.width and \
-                        rs_prf_stream.height() == profile.height and \
-                        rs_prf_stream.fps() == profile.fps:
+                    if prf_stream.matches(rs_prf_stream):
 
-                        prf_to_sensor_ctx[profile] = cls.SensorContext(sensor, rs_prf_stream)
+                        prf_to_sensor_ctx[prf_stream] = cls.SensorContext(sensor, rs_prf_stream)
 
-                        prfs_not_found.remove(profile)
+                        prfs_not_found.remove(prf_stream)
 
                         break
 
