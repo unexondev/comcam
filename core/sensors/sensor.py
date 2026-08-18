@@ -19,17 +19,17 @@ class Sensor:
     """
     def __init__(self):
         # Initialize an empty set for stream profiles
-        self.profiles : set[StreamProfile] = set()
+        self._profiles : set[StreamProfile] = set()
 
-    def set_profiles(self, stream_profiles : set[StreamProfile]):
-        self.profiles = stream_profiles.copy()
+    def configure(self, stream_profiles : set[StreamProfile]):
+        self._profiles = stream_profiles.copy()
 
     def open(self):
         """
         Open the sensor physically.
 
         Raises:
-            RuntimeError: If sensor couldn't be opened successfully.
+            SensorOpenError: If sensor couldn't be opened successfully.
         """
         raise NotImplementedError()
 
@@ -38,7 +38,7 @@ class Sensor:
         Close the sensor physically.
 
         Raises:
-            RuntimeError: If sensor couldn't be closed successfully.
+            SensorCloseError: If sensor couldn't be closed successfully.
         """
 
     def start(self):
@@ -46,7 +46,7 @@ class Sensor:
         Start the sensor (start streaming) physically.
 
         Raises:
-            RuntimeError: If sensor couldn't be started successfully.
+            SensorStartError: If sensor couldn't be started successfully.
         """
         raise NotImplementedError()
 
@@ -55,7 +55,7 @@ class Sensor:
         Stop the sensor (end streaming) physically.
 
         Raises:
-            RuntimeError: If sensor couldn't be stopped successfully.
+            SensorStopError: If sensor couldn't be stopped successfully.
         """
         raise NotImplementedError()
 
@@ -64,7 +64,7 @@ class Sensor:
         Check if sensor is physically in `Opened` state.
 
         Raises:
-            RuntimeError: If an error occured during retrieving the sensor state.
+            SensorStateError: If an error occured during retrieving the sensor state.
         """
         raise NotImplementedError()
 
@@ -73,7 +73,7 @@ class Sensor:
         Check if sensor is physically in `Closed` state.
 
         Raises:
-            RuntimeError: If an error occured during retrieving the sensor state.
+            SensorStateError: If an error occured during retrieving the sensor state.
         """
         return not self.is_opened()
 

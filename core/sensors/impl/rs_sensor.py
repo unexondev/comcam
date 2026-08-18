@@ -1,20 +1,31 @@
+from typing import Callable
+
 from ..sensor import Sensor
+from ..exceptions import *
 from ...stream_profile import StreamProfile
 
-from pyrealsense2 import sensor as rs2_sensor, stream_profile
+from pyrealsense2 import sensor as rs2_sensor
+from pyrealsense2 import syncer as rs2_syncer
+from pyrealsense2 import frame
 
 
 class RSSensor(Sensor):
 
     def __init__(self,
                  sensor : rs2_sensor,
+                 syncer : rs2_syncer = None,
+                 consumer_callback : Callable[[frame], None] = None
                  ):
 
         # initialize Sensor base class
         super().__init__()
 
-        # store the pyrealsense2 sensor object
+        # store the pyrealsense2 sensor instance
         self._sensor = sensor
+        # store the syncer instance
+        self.syncer = syncer
+        # store the consumer callback
+        self.cb_consumer = consumer_callback
 
 
     def resolve_rs_stream_profiles(self) -> set[StreamProfile]:
@@ -22,9 +33,9 @@ class RSSensor(Sensor):
         rs_profiles : set[StreamProfile] = set()
 
         for prf_supported in self._sensor.profiles:
-            for prf_requested in self.profiles:
+            for prf_requested in self._profiles:
 
-                if prf_requested == prf_supported:
+                if prf_requested.matches(prf_supported):
                     rs_profiles.add(prf_supported)
 
         return rs_profiles
@@ -37,29 +48,56 @@ class RSSensor(Sensor):
                 "Realsense2's sensor API requires profiles"
                 " to be given before opening the sensor."
                 )
+
+        # retrieve pyrealsense2 stream profiles
         rs_profiles = self.resolve_rs_stream_profiles()
-        
+
+        # open the sensor
+        try:
+            self._sensor.open(profiles=rs_profiles)
+        except RuntimeError as err:
+            raise SensorOpenError(
+                "Failed to open RealSense sensor."
+                ) from err 
+
+
+    def close(self):
+        # close the sensor directly
+        try:
+            self._sensor.close()
+        except RuntimeError as err:
+            raise SensorCloseError(
+                "Failed to close RealSense sensor."
+                ) from err
+
 
     def start(self):
-        """
-        Start the sensor (start streaming) physically.
-        """
-        raise NotImplementedError()
+        # start the sensor directly
+        try:
+            # use syncer if given, consumer otherwise
+            self._sensor.start(
+                self.cb_consumer if self.syncer is None else self.syncer
+                )
+        except RuntimeError as err:
+            raise SensorStartError(
+                "Failed to start RealSense sensor."
+                ) from err 
+
 
     def stop(self):
-        """
-        Stop the sensor (end streaming) physically.
-        """
-        raise NotImplementedError()
+        # stop the sensor directly
+        try:
+            self._sensor.stop()
+        except RuntimeError as err:
+            raise SensorStopError(
+                "Failed to stop RealSense sensor."
+                ) from err
+
 
     def is_opened(self):
-        """
-        Check if sensor is physically in `Opened` state.
-        """
-        raise NotImplementedError()
-
-    def is_closed(self):
-        """
-        Check if sensor is physically in `Closed` state.
-        """
-        return not self.is_opened()
+        try:
+            return len(self._sensor.get_active_streams()) > 0
+        except RuntimeError as err:
+            raise SensorStateError(
+                "Failed to gather information from sensor."
+            ) from err
