@@ -2,7 +2,7 @@ from typing import Callable
 
 from ..sensor import Sensor
 from ..exceptions import *
-from ...stream_profile import StreamProfile
+from ....stream.profile import StreamProfile
 
 from pyrealsense2 import sensor as rs2_sensor
 from pyrealsense2 import syncer as rs2_syncer

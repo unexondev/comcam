@@ -2,9 +2,9 @@ from pyrealsense2 import context, option, syncer
 from pyrealsense2 import stream_profile as rs_stream_profile
 from pyrealsense2 import video_stream_profile as rs_video_stream_profile
 
-from .core.sensors import Sensor
+from .core.sensor import Sensor
 from .core.mixins.optimization import OptimizationMixin
-from .core.stream_profile import StreamProfile
+from .stream.profile import StreamProfile
 
 from dataclasses import dataclass
 from enum import Enum
@@ -119,10 +119,6 @@ class Environment(OptimizationMixin):
             profile_to_sensor_ctx=prf_to_sensor_ctx,
             options=options
             )
-
-    @staticmethod
-    def _is_sensor_opened_internal(sensor : rs_sensor):
-        return len(sensor.get_active_streams()) > 0
 
 
     def _get_rs_stream_profile(self, stream_profile : StreamProfile):

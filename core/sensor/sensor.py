@@ -1,4 +1,4 @@
-from ..stream_profile import StreamProfile
+from ...stream.profile import StreamProfile
 
 
 class Sensor:

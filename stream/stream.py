@@ -1,7 +1,7 @@
 from pyrealsense2 import syncer, composite_frame
 
-from .environment import Environment
-from .core.stream_profile import StreamProfile
+from ..environment import Environment
+from .profile import StreamProfile
 
 from dataclasses import dataclass
 from collections import deque
