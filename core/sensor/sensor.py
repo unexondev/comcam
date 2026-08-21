@@ -31,6 +31,10 @@ class Sensor:
         self._profiles : set[StreamProfile] = set()
 
     def configure(self, stream_profiles : set[StreamProfile]):
+        """
+        Configure the sensor so it can then stream on
+        given stream profiles after the next time it's opened.
+        """
         self._profiles = stream_profiles.copy()
 
     def open(self):
