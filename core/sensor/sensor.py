@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 
 from eyebin.stream.profile import StreamProfile
 
@@ -6,6 +7,13 @@ from eyebin.stream.profile import StreamProfile
 @dataclass
 class SensorOptions:
     pass
+
+
+class SensorState(Enum):
+    CLOSED = 0,
+    OPENED = 1,
+    STREAMING = 2,
+    ERRORED = 3
 
 
 class Sensor:
@@ -25,10 +33,16 @@ class Sensor:
     to ensure that all assumptions are satisfied.
     """
     def __init__(self, options : SensorOptions):
+        # initialize state
+        self._state = SensorState.CLOSED
         # store sensor options
         self.opts = options
         # Initialize an empty set for stream profiles
         self._profiles : set[StreamProfile] = set()
+
+    @property
+    def state(self):
+        return self._state
 
     def configure(self, stream_profiles : set[StreamProfile]):
         """
@@ -44,7 +58,7 @@ class Sensor:
         Raises:
             SensorOpenError: If sensor couldn't be opened successfully.
         """
-        raise NotImplementedError()
+        self._state = SensorState.OPENED
 
     def close(self):
         """
@@ -53,6 +67,7 @@ class Sensor:
         Raises:
             SensorCloseError: If sensor couldn't be closed successfully.
         """
+        self._state = SensorState.CLOSED
 
     def start(self):
         """
@@ -61,7 +76,7 @@ class Sensor:
         Raises:
             SensorStartError: If sensor couldn't be started successfully.
         """
-        raise NotImplementedError()
+        self._state = SensorState.STREAMING
 
     def stop(self):
         """
@@ -70,7 +85,7 @@ class Sensor:
         Raises:
             SensorStopError: If sensor couldn't be stopped successfully.
         """
-        raise NotImplementedError()
+        self._state = SensorState.OPENED
 
     def is_opened(self):
         """
@@ -90,4 +105,5 @@ class Sensor:
         """
         return not self.is_opened()
 
-    
+    def _fail(self):
+        self._state = SensorState.ERRORED

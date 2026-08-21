@@ -75,7 +75,10 @@ class RSSensor(Sensor):
         # open the sensor
         try:
             self._sensor.open(profiles=rs_profiles)
+            super().open()
+
         except RuntimeError as err:
+            self._fail()
             raise SensorOpenError(
                 "Failed to open RealSense sensor."
                 ) from err 
@@ -85,7 +88,10 @@ class RSSensor(Sensor):
         # close the sensor directly
         try:
             self._sensor.close()
+            super().close()
+
         except RuntimeError as err:
+            self._fail()
             raise SensorCloseError(
                 "Failed to close RealSense sensor."
                 ) from err
@@ -98,7 +104,10 @@ class RSSensor(Sensor):
             self._sensor.start(
                 self.cb_consumer if self.syncer is None else self.syncer
                 )
+            super().start()
+
         except RuntimeError as err:
+            self._fail()
             raise SensorStartError(
                 "Failed to start RealSense sensor."
                 ) from err 
@@ -108,7 +117,10 @@ class RSSensor(Sensor):
         # stop the sensor directly
         try:
             self._sensor.stop()
+            super().stop()
+
         except RuntimeError as err:
+            self._fail()
             raise SensorStopError(
                 "Failed to stop RealSense sensor."
                 ) from err
@@ -117,7 +129,9 @@ class RSSensor(Sensor):
     def is_opened(self):
         try:
             return len(self._sensor.get_active_streams()) > 0
+
         except RuntimeError as err:
+            self._fail()
             raise SensorStateError(
                 "Failed to gather information from sensor."
             ) from err
