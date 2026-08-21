@@ -1,24 +1,44 @@
 from typing import Callable
+from dataclasses import dataclass
 
-from ..sensor import Sensor
-from ..exceptions import *
-from ....stream.profile import StreamProfile
+from eyebin.core.sensor import Sensor, SensorOptions
+from eyebin.core.sensor.exceptions import *
+from eyebin.stream.profile import StreamProfile
 
+# Realsense API
 from pyrealsense2 import sensor as rs2_sensor
 from pyrealsense2 import syncer as rs2_syncer
 from pyrealsense2 import frame
+
+
+@dataclass
+class RSSensorOptions(SensorOptions):
+    # define thresholds
+    max_asic_temperature : float
+    """
+    Maximum ASIC temperature value allowed for depth sensors.
+    If this value is exceeded, related sensor will be suspended.
+    """
+    max_projector_temperature : float
+    """
+    Maximum projector temperature value allowed for depth sensors.
+    If this value is exceeded, related sensor will be suspended.
+    """
 
 
 class RSSensor(Sensor):
 
     def __init__(self,
                  sensor : rs2_sensor,
+                 options : RSSensorOptions,
                  syncer : rs2_syncer = None,
                  consumer_callback : Callable[[frame], None] = None
                  ):
 
         # initialize Sensor base class
-        super().__init__()
+        super().__init__(
+            options=options
+            )
 
         # store the pyrealsense2 sensor instance
         self._sensor = sensor

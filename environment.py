@@ -1,10 +1,7 @@
-from pyrealsense2 import context, option, syncer
-from pyrealsense2 import stream_profile as rs_stream_profile
-from pyrealsense2 import video_stream_profile as rs_video_stream_profile
-
-from .core.sensor import Sensor
-from .core.mixins.optimization import OptimizationMixin
 from .stream.profile import StreamProfile
+from .core.sensor import Sensor
+from .core.sensor.resolver import SensorResolver
+from .core.mixins.optimization import OptimizationMixin
 
 from dataclasses import dataclass
 from enum import Enum
@@ -55,82 +52,44 @@ class Environment(OptimizationMixin):
     Manage all the devices required to receive data for given video stream profiles
     """
 
-    @dataclass
-    class SensorContext:
-        sensor : Sensor
-        profile : rs_stream_profile
-        def __hash__(self):
-            return hash((
-                self.sensor, self.profile
-            ))
 
     def __init__(self,
-                 profile_to_sensor_ctx : dict[StreamProfile, SensorContext],
+                 profile_to_sensor : dict[StreamProfile, Sensor],
                  options : EnvironmentOptions
                  ):
-        self._prf_to_sensor_ctx = profile_to_sensor_ctx # profile to sensor map
+
+        self._prf_to_sensor = profile_to_sensor # profile to sensor map
+
         self._sensor_states = {
-            ctx_sensor.sensor: SensorState.CLOSED
-                for ctx_sensor in profile_to_sensor_ctx.values()
+            sensor: SensorState.CLOSED
+            for sensor in profile_to_sensor.values()
             } # sensor to its state map
+
         self.opts = options
+
         self._lock = Lock() # for thread-safe read/writes to sensor states etc.
 
+
     @classmethod
-    def create(cls, context : context, stream_profiles : set[StreamProfile], options : EnvironmentOptions):
-        prf_to_sensor_ctx = {}
+    def create(cls, resolver : SensorResolver, stream_profiles : set[StreamProfile], options : EnvironmentOptions):
 
-        # map profiles with sensors
-        # FIXME
-        sensors = context.query_all_sensors()
-        prfs_not_found = stream_profiles.copy()
-        for sensor in sensors:
-
-            rs_prfs_stream = sensor.get_stream_profiles()
-            for rs_prf_stream in rs_prfs_stream:
-
-                if not prfs_not_found: break
-
-                for prf_stream in prfs_not_found:
-
-                    if not rs_prf_stream.is_video_stream_profile():
-                        continue
-
-                    rs_prf_stream : rs_video_stream_profile \
-                        = rs_prf_stream.as_video_stream_profile()
-
-                    if prf_stream.matches(rs_prf_stream):
-
-                        prf_to_sensor_ctx[prf_stream] = cls.SensorContext(sensor, rs_prf_stream)
-
-                        prfs_not_found.remove(prf_stream)
-
-                        break
-
-            else:
-                continue
-
-            break
-
-        else:
-            raise RuntimeError("Some of the stream profiles are not supported")
+        prf_to_sensor = {
+            prf_stream : resolver.resolve(prf_stream)
+            for prf_stream in stream_profiles
+            }
 
         return cls(
-            profile_to_sensor_ctx=prf_to_sensor_ctx,
+            profile_to_sensor_ctx=prf_to_sensor,
             options=options
             )
 
 
-    def _get_rs_stream_profile(self, stream_profile : StreamProfile):
-        return self._prf_to_sensor_ctx[stream_profile].profile
-
-
-    def _get_sensor_state(self, sensor : rs_sensor):
+    def _get_sensor_state(self, sensor : Sensor):
         with self._lock:
             return self._sensor_states[sensor]
 
 
-    def _set_sensor_state(self, sensor : rs_sensor, state : SensorState):
+    def _set_sensor_state(self, sensor : Sensor, state : SensorState):
         with self._lock:
             self._sensor_states[sensor] = state
 
@@ -139,19 +98,19 @@ class Environment(OptimizationMixin):
     Helper functions while interacting with sensors
     """
 
-    def get_sensor(self, stream_profile : StreamProfile):
-        return self._prf_to_sensor_ctx[stream_profile].sensor
+    def get_sensor(self, stream_profile : StreamProfile) -> Sensor:
+        return self._prf_to_sensor[stream_profile]
 
 
     def stream_profiles(self):
-        for prf in self._prf_to_sensor_ctx.keys():
+        for prf in self._prf_to_sensor.keys():
             prf : StreamProfile
             yield prf
 
 
     def sensors(self):
-        for ctx_sensor in set(self._prf_to_sensor_ctx.values()):
-            yield ctx_sensor.sensor
+        for sensor in set(self._prf_to_sensor.values()):
+            yield sensor
 
 
     def is_streaming(self, stream_profile : StreamProfile):

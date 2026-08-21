@@ -1,4 +1,11 @@
-from ...stream.profile import StreamProfile
+from dataclasses import dataclass
+
+from eyebin.stream.profile import StreamProfile
+
+
+@dataclass
+class SensorOptions:
+    pass
 
 
 class Sensor:
@@ -17,7 +24,9 @@ class Sensor:
     The derived classes must implement the functions properly
     to ensure that all assumptions are satisfied.
     """
-    def __init__(self):
+    def __init__(self, options : SensorOptions):
+        # store sensor options
+        self.opts = options
         # Initialize an empty set for stream profiles
         self._profiles : set[StreamProfile] = set()
 
