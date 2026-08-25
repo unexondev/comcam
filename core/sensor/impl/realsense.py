@@ -173,3 +173,5 @@ class RSSensor(Sensor):
 
                     if projector_temp > opts.max_projector_temperature:
                         return False
+
+            return True
