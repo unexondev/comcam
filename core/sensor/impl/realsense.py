@@ -2,13 +2,15 @@ from typing import Callable
 from dataclasses import dataclass
 
 from eyebin.core.sensor import Sensor, SensorOptions
+from eyebin.core.sensor.sensor import SensorState
 from eyebin.core.sensor.exceptions import *
 from eyebin.stream.profile import StreamProfile
 
 # Realsense API
 from pyrealsense2 import sensor as rs2_sensor
 from pyrealsense2 import syncer as rs2_syncer
-from pyrealsense2 import frame
+from pyrealsense2 import frame as rs2_frame
+from pyrealsense2 import option as rs2_option
 
 
 @dataclass
@@ -32,7 +34,7 @@ class RSSensor(Sensor):
                  sensor : rs2_sensor,
                  options : RSSensorOptions,
                  syncer : rs2_syncer = None,
-                 consumer_callback : Callable[[frame], None] = None
+                 consumer_callback : Callable[[rs2_frame], None] = None
                  ):
 
         # initialize Sensor base class
@@ -135,3 +137,39 @@ class RSSensor(Sensor):
             raise SensorInfoError(
                 "Failed to gather information from sensor."
             ) from err
+
+
+    def is_healthy(self):
+
+        ss = self._sensor
+        opts = self.opts
+
+        with self._lock:
+
+            if self.state != SensorState.STREAMING:
+                # for Realsense API, sensor must be
+                # streaming to check its health, if not;
+                # just return `True`.`
+                return True
+
+            # TODO: do we need another abstraction here?
+            # suggestion: RSDepthSensor maybe?
+            if ss.is_depth_sensor():
+                """
+                - Asic temperature
+                - Projector temperature
+                """
+                opts_sensor = ss.get_supported_options()
+                if rs2_option.asic_temperature in opts_sensor:
+
+                    asic_temp = ss.get_option(rs2_option.asic_temperature)
+
+                    if asic_temp > opts.max_asic_temperature:
+                        return False
+
+                if rs2_option.projector_temperature in opts_sensor:
+
+                    projector_temp = ss.get_option(rs2_option.projector_temperature)
+
+                    if projector_temp > opts.max_projector_temperature:
+                        return False
