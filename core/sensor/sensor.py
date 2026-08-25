@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from threading import Lock # for thread-safe
 
 from eyebin.stream.profile import StreamProfile
 
@@ -39,10 +40,16 @@ class Sensor:
         self.opts = options
         # Initialize an empty set for stream profiles
         self._profiles : set[StreamProfile] = set()
+        self._lock = Lock()
 
     @property
     def state(self):
         return self._state
+
+
+    """
+    Sensor Management APIs
+    """
 
     def configure(self, stream_profiles : set[StreamProfile]):
         """
@@ -58,7 +65,8 @@ class Sensor:
         Raises:
             SensorOpenError: If sensor couldn't be opened successfully.
         """
-        self._state = SensorState.OPENED
+        with self._lock:
+            self._state = SensorState.OPENED
 
     def close(self):
         """
@@ -67,7 +75,8 @@ class Sensor:
         Raises:
             SensorCloseError: If sensor couldn't be closed successfully.
         """
-        self._state = SensorState.CLOSED
+        with self.lock:
+            self._state = SensorState.CLOSED
 
     def start(self):
         """
@@ -76,7 +85,8 @@ class Sensor:
         Raises:
             SensorStartError: If sensor couldn't be started successfully.
         """
-        self._state = SensorState.STREAMING
+        with self._lock:
+            self._state = SensorState.STREAMING
 
     def stop(self):
         """
@@ -85,14 +95,20 @@ class Sensor:
         Raises:
             SensorStopError: If sensor couldn't be stopped successfully.
         """
-        self._state = SensorState.OPENED
+        with self._lock:
+            self._state = SensorState.OPENED
+
+
+    """
+    Sensor Information Query APIs
+    """
 
     def is_opened(self):
         """
         Check if sensor is physically in `Opened` state.
 
         Raises:
-            SensorStateError: If an error occured during retrieving the sensor state.
+            SensorInfoError: If an error occurs while gathering the sensor information.
         """
         raise NotImplementedError()
 
@@ -101,9 +117,25 @@ class Sensor:
         Check if sensor is physically in `Closed` state.
 
         Raises:
-            SensorStateError: If an error occured during retrieving the sensor state.
+            SensorInfoError: If an error occurs while gathering the sensor information.
         """
         return not self.is_opened()
 
+    def is_healthy(self):
+        """
+        Check if sensor is healthy under constraints passed in `options`.
+
+        Raises:
+            SensorInfoError: If an error occurs while gathering the sensor information.
+        """
+        raise NotImplementedError()
+
+
+    """
+    Private Functions
+    """
+
     def _fail(self):
-        self._state = SensorState.ERRORED
+        with self._lock:
+            self._state = SensorState.ERRORED
+        

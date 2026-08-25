@@ -23,7 +23,7 @@ class SensorStopError(SensorError):
     Raised when sensor couldn't be stopped.
     """
 
-class SensorStateError(SensorError):
+class SensorInfoError(SensorError):
     """
-    Raised when state information couldn't be gathered from sensor.
+    Raised when information couldn't be gathered from sensor.
     """

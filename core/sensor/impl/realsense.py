@@ -132,6 +132,6 @@ class RSSensor(Sensor):
 
         except RuntimeError as err:
             self._fail()
-            raise SensorStateError(
+            raise SensorInfoError(
                 "Failed to gather information from sensor."
             ) from err

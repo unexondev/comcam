@@ -1,12 +1,10 @@
 from .stream.profile import StreamProfile
 from .core.sensor import Sensor
+from .core.sensor.sensor import SensorState
 from .core.sensor.resolver import SensorResolver
 from .core.mixins.optimization import OptimizationMixin
 
 from dataclasses import dataclass
-from enum import Enum
-
-from threading import Lock # for thread-safe
 
 import logging
 
@@ -39,14 +37,6 @@ class EnvironmentOptions:
     """
 
 
-class SensorState(Enum):
-    CLOSED = 0,
-    OPTIMIZING = 1,
-    OPENED = 2,
-    STARTED = 3,
-    ERRORED = 4
-
-
 class Environment(OptimizationMixin):
     """
     Manage all the devices required to receive data for given video stream profiles
@@ -60,18 +50,15 @@ class Environment(OptimizationMixin):
 
         self._prf_to_sensor = profile_to_sensor # profile to sensor map
 
-        self._sensor_states = {
-            sensor: SensorState.CLOSED
-            for sensor in profile_to_sensor.values()
-            } # sensor to its state map
-
         self.opts = options
-
-        self._lock = Lock() # for thread-safe read/writes to sensor states etc.
 
 
     @classmethod
-    def create(cls, resolver : SensorResolver, stream_profiles : set[StreamProfile], options : EnvironmentOptions):
+    def create(cls,
+               resolver : SensorResolver,
+               stream_profiles : set[StreamProfile],
+               options : EnvironmentOptions
+               ):
 
         prf_to_sensor = {
             prf_stream : resolver.resolve(prf_stream)
@@ -82,16 +69,6 @@ class Environment(OptimizationMixin):
             profile_to_sensor_ctx=prf_to_sensor,
             options=options
             )
-
-
-    def _get_sensor_state(self, sensor : Sensor):
-        with self._lock:
-            return self._sensor_states[sensor]
-
-
-    def _set_sensor_state(self, sensor : Sensor, state : SensorState):
-        with self._lock:
-            self._sensor_states[sensor] = state
 
 
     """
@@ -111,11 +88,6 @@ class Environment(OptimizationMixin):
     def sensors(self):
         for sensor in set(self._prf_to_sensor.values()):
             yield sensor
-
-
-    def is_streaming(self, stream_profile : StreamProfile):
-        sensor = self.get_sensor(stream_profile)
-        return self._get_sensor_state(sensor) == SensorState.STARTED
 
 
     def check_health(self):
