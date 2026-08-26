@@ -70,12 +70,17 @@ class Sensor:
     Sensor Management APIs
     """
 
-    def configure(self, stream_profiles : set[StreamProfile]):
+    def configure(self, stream : Stream, stream_profiles : set[StreamProfile]):
         """
         Configure the sensor so it can then stream on
-        given stream profiles after the next time it's opened.
+        given stream configuration after the next time it's opened.
+        
+        Args:
+            stream: A `Stream` object where sensor pushes captured data.
+            stream_profiles: A set of `StreamProfile` objects that defines how sensor will produce data.
         """
         self._profiles = stream_profiles.copy()
+        self._stream = stream
 
 
     def open(self):
@@ -100,16 +105,13 @@ class Sensor:
             self._state = SensorState.CLOSED
 
 
-    def start(self, stream : Stream):
+    def start(self):
         """
         Start the sensor (start streaming) physically.
 
         Raises:
             SensorStartError: If sensor couldn't be started successfully.
         """
-        # set the outgoing stream
-        self._stream = stream
-
         with self._lock:
             self._state = SensorState.STREAMING
 
