@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from threading import Lock # for thread-safe
 
-from eyebin.stream.profile import StreamProfile
+from eyebin.stream import Stream, StreamProfile
 
 
 @dataclass
@@ -34,17 +34,36 @@ class Sensor:
     to ensure that all assumptions are satisfied.
     """
     def __init__(self, options : SensorOptions):
+
         # initialize state
         self._state = SensorState.CLOSED
+
         # store sensor options
         self.opts = options
-        # Initialize an empty set for stream profiles
+
+        # initialize an empty set for stream profiles
         self._profiles : set[StreamProfile] = set()
+
+        # define receiver stream
+        self._stream : Stream | None = None
+
+        # create mutex
         self._lock = Lock()
+
 
     @property
     def state(self):
         return self._state
+
+
+    @property
+    def options(self):
+        return self.opts
+
+
+    @property
+    def profiles(self):
+        return self._profiles.copy()
 
 
     """
@@ -58,6 +77,7 @@ class Sensor:
         """
         self._profiles = stream_profiles.copy()
 
+
     def open(self):
         """
         Open the sensor physically.
@@ -67,6 +87,7 @@ class Sensor:
         """
         with self._lock:
             self._state = SensorState.OPENED
+
 
     def close(self):
         """
@@ -78,15 +99,20 @@ class Sensor:
         with self.lock:
             self._state = SensorState.CLOSED
 
-    def start(self):
+
+    def start(self, stream : Stream):
         """
         Start the sensor (start streaming) physically.
 
         Raises:
             SensorStartError: If sensor couldn't be started successfully.
         """
+        # set the outgoing stream
+        self._stream = stream
+
         with self._lock:
             self._state = SensorState.STREAMING
+
 
     def stop(self):
         """
@@ -112,6 +138,7 @@ class Sensor:
         """
         raise NotImplementedError()
 
+
     def is_closed(self):
         """
         Check if sensor is physically in `Closed` state.
@@ -120,6 +147,7 @@ class Sensor:
             SensorInfoError: If an error occurs while gathering the sensor information.
         """
         return not self.is_opened()
+
 
     def is_healthy(self):
         """
