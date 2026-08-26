@@ -1,18 +1,34 @@
-from pyrealsense2 import syncer, composite_frame
-
-from ..environment import Environment
-from .profile import StreamProfile
-
-from dataclasses import dataclass
 from collections import deque
+from threading import Condition
+import time
 
-import threading
+from numpy.typing import NDArray
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class Stream:
 
-    pass
+class Stream:
+    """
+    TODO add docstring
+    """
+
+    def __init__(self):
+        self._queue : deque[NDArray] = deque()
+
+
+    def push(self, data : NDArray):
+        """
+        Pushes data to the stream.
+
+        Args:
+            data: An `NDArray` to push to the queue.
+        """
+        self._queue.append(data)
+
+
+    """
+    TODO: Check threading.Condition ***
+    """
