@@ -87,40 +87,8 @@ class Environment(OptimizationMixin):
 
     def sensors(self):
         for sensor in set(self._prf_to_sensor.values()):
-            yield sensor
+            yield sensor   
 
-
-    def check_health(self):
-
-        for sensor in self.sensors():
-
-            if self._get_sensor_state(sensor) != SensorState.STARTED:
-                continue # sensor must be streaming to check its health
-
-            if sensor.is_depth_sensor():
-                """
-                - Asic temperature
-                - Projector temperature
-                """
-                opts_sensor = sensor.get_supported_options()
-                if option.asic_temperature in opts_sensor:
-                    asic_temp = sensor.get_option(option.asic_temperature)
-                    asic_temp_max = self.opts.asic_temp_range_stereo[1]
-
-                    if asic_temp > asic_temp_max:
-                        return False
-
-                if option.projector_temperature in opts_sensor:
-                    projector_temp = sensor.get_option(option.projector_temperature)
-                    projector_temp_max = self.opts.projector_temp_range_stereo[1]
-
-                    if projector_temp > projector_temp_max:
-                        return False
-
-        # TODO add health checks for other type of sensors?
-
-        return True
-    
 
     def start_stream(self, stream_profile : StreamProfile, syncer : syncer = None):
         """
