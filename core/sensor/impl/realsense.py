@@ -4,13 +4,16 @@ from dataclasses import dataclass
 from eyebin.core.sensor import Sensor, SensorOptions
 from eyebin.core.sensor.sensor import SensorState
 from eyebin.core.sensor.exceptions import *
-from eyebin.stream.profile import StreamProfile
+from eyebin.stream import StreamProfile
 
 # Realsense API
 from pyrealsense2 import sensor as rs2_sensor
 from pyrealsense2 import syncer as rs2_syncer
 from pyrealsense2 import frame as rs2_frame
 from pyrealsense2 import option as rs2_option
+
+# util packages
+import numpy
 
 
 @dataclass
@@ -32,9 +35,7 @@ class RSSensor(Sensor):
 
     def __init__(self,
                  sensor : rs2_sensor,
-                 options : RSSensorOptions,
-                 syncer : rs2_syncer = None,
-                 consumer_callback : Callable[[rs2_frame], None] = None
+                 options : RSSensorOptions
                  ):
 
         # initialize Sensor base class
@@ -44,13 +45,9 @@ class RSSensor(Sensor):
 
         # store the pyrealsense2 sensor instance
         self._sensor = sensor
-        # store the syncer instance
-        self.syncer = syncer
-        # store the consumer callback
-        self.cb_consumer = consumer_callback
 
 
-    def resolve_rs_stream_profiles(self) -> set[StreamProfile]:
+    def _resolve_rs_stream_profiles(self) -> set[StreamProfile]:
 
         rs_profiles : set[StreamProfile] = set()
 
@@ -72,7 +69,7 @@ class RSSensor(Sensor):
                 )
 
         # retrieve pyrealsense2 stream profiles
-        rs_profiles = self.resolve_rs_stream_profiles()
+        rs_profiles = self._resolve_rs_stream_profiles()
 
         # open the sensor
         try:
@@ -102,10 +99,11 @@ class RSSensor(Sensor):
     def start(self):
         # start the sensor directly
         try:
-            # use syncer if given, consumer otherwise
+            # start sensor with our producer callback
             self._sensor.start(
-                self.cb_consumer if self.syncer is None else self.syncer
-                )
+                callback=self._produce_stream_data
+            )
+
             super().start()
 
         except RuntimeError as err:
@@ -175,3 +173,15 @@ class RSSensor(Sensor):
                         return False
 
             return True
+
+
+    def _produce_stream_data(self, frame : rs2_frame):
+        stream = self._stream
+        if stream is None:
+            return # no outgoing stream
+
+        data = frame.get_data()
+
+        stream.push(
+            data=data
+            ) # push data to stream
