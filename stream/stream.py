@@ -22,9 +22,9 @@ class Stream:
         self._cond = Condition() # for thread-safe push/pops
 
 
-    def push(self, data : NDArray):
+    def put(self, data : NDArray):
         """
-        Pushes data to the stream.
+        Puts new data to the stream.
 
         Args:
             data: An `NDArray` to push to the queue.
@@ -34,49 +34,56 @@ class Stream:
             self._cond.notify()
 
 
-    def popleft(self) -> NDArray:
+    def _wait(self, timeout_ms):
+
+        init_ms = time.monotonic_ns() // 1_000_000
+
+        while not self._queue:
+
+            cur_ms = time.monotonic_ns() // 1_000_000
+            wait_ms = timeout_ms - (cur_ms - init_ms)
+
+            if wait_ms <= 0:
+                return False
+
+            self._cond.wait(timeout=wait_ms)
+
+        return True
+
+
+    def wait_oldest(self, timeout_ms : int = 5000) -> NDArray | None:
         """
-        Pops data from the stream (left).
+        Pops oldest data from stream or waits for new data to be arrived.
+        
+        Args:
+            until_ms: An `int` represents the time to wait before returning as milliseconds.
 
         Returns:
-            An NDArray popped from the stream.
+            Popped `NDArray` if any data exist or arrived within `until_ms`, `None` otherwise.
         """
+
         with self._cond:
+
+            if not self._wait(timeout_ms):
+                return None
+
             return self._queue.popleft()
 
 
-    def pop(self) -> NDArray:
+    def wait_recent(self, timeout_ms : int = 5000) -> NDArray:
         """
-        Pops data from the stream.
+        Pops recent data from stream or waits for new data to be arrived.
+        
+        Args:
+            until_ms: An `int` represents the time to wait before returning as milliseconds.
 
         Returns:
-            An NDArray popped from the stream.
-        """
-        with self._cond:
-            return self._queue.pop()
-
-
-    def wait_left(self, until_ms : int = 5000) -> NDArray:
-        """
-        TODO docstring & timestamp evalulation
+            Popped `NDArray` if any data exist or arrived within `until_ms`, `None` otherwise.
         """
 
         with self._cond:
 
-            while not self._queue:
-                self._cond.wait()
-
-            return self._queue.popleft()
-
-
-    def wait(self, until_ms : int = 5000) -> NDArray:
-        """
-        TODO docstring & timestamp evalulation
-        """
-
-        with self._cond:
-
-            while not self._queue:
-                self._cond.wait()
+            if not self._wait(timeout_ms):
+                return None
 
             return self._queue.pop()
