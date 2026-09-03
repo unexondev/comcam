@@ -1,7 +1,8 @@
 from eyebin import create_context
+from eyebin import Stream
 from eyebin import Environment, EnvironmentOptions
-from eyebin import Stream, StreamOptions
 from eyebin import VideoStreamProfile, StreamType, StreamFormat
+from eyebin.core.sensor.resolver.impl.realsense import RSSPResolver, RSSensorOptions
 
 import numpy
 import cv2
@@ -11,28 +12,36 @@ import time
 # get the context first
 context = create_context()
 
+# define sensor options
+opts_sensor = RSSensorOptions(
+    max_asic_temperature=40.0,
+    max_projector_temperature=40.0
+    )
+
+# initialize sensor resolver
+resolver = RSSPResolver(
+    sensor_options=opts_sensor,
+    context=context
+    )
+
 # create stream profiles
 sp_depth = VideoStreamProfile(StreamType.depth, StreamFormat.z16, 1280, 720, 30)
 sp_color = VideoStreamProfile(StreamType.color, StreamFormat.rgba8, 1280, 720, 30)
 
-# set enviornment options
-opts_env = EnvironmentOptions(
-    optimized_startup=False,
-    asic_temp_range_stereo=(30.0, 40.0),
-    projector_temp_range_stereo=(27.0, 40.0)
-)
+sensor_depth = resolver.resolve(sp_depth)
+sensor_color = resolver.resolve(sp_color)
 
-# create environment for the stream profiles requested
-env = Environment.create(context, { sp_depth, sp_color }, opts_env)
+stream_depth = Stream()
+stream_color = Stream()
 
-# set stream options
-opts_stream = StreamOptions()
+sensor_depth.configure(stream=stream_depth, stream_profiles={sp_depth})
+sensor_color.configure(stream=stream_depth, stream_profiles={sp_color})
 
-# create stream
-stream = Stream.create(env, opts_stream)
+sensor_depth.start()
+sensor_color.start()
 
-# start the stream
-stream.start()
+stream_depth.wait_oldest(...)
+stream_color.wait_oldest(...)
 
 img = None
 
