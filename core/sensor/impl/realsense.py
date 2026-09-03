@@ -182,6 +182,4 @@ class RSSensor(Sensor):
 
         data = frame.get_data()
 
-        stream.push(
-            data=data
-            ) # push data to stream
+        stream.put(data) # put data to stream
