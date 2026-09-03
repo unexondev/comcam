@@ -1,11 +1,11 @@
 from eyebin.core.sensor.impl.realsense import RSSensor, RSSensorOptions
-from eyebin.core.sensor.resolver import SensorResolver
+from eyebin.core.sensor.resolver import SPResolver
 from eyebin.stream.profile import StreamProfile
 
 from pyrealsense2 import context as rs_context
 
 
-class RSSensorResolver(SensorResolver):
+class RSSPResolver(SPResolver):
 
     def __init__(self,
                  sensor_options : RSSensorOptions,

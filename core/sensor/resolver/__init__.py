@@ -1,6 +1,6 @@
-from .resolver import SensorResolver
+from .resolver import SPResolver
 
 
 __all__ = [
-    "SensorResolver"
+    "SPResolver"
 ]

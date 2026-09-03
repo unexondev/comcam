@@ -2,7 +2,7 @@ from eyebin.stream.profile import StreamProfile
 from eyebin.core.sensor import Sensor, SensorOptions
 
 
-class SensorResolver:
+class SPResolver: # StreamProfileResolver
     """
     Abstraction class for dependency resolution
     from stream profiles to all types of sensors.
