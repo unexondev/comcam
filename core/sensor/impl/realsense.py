@@ -3,12 +3,14 @@ from dataclasses import dataclass
 
 from core.sensor.sensor import *
 from core.sensor.exceptions import *
-from stream import StreamProfile
+from stream import VideoStreamProfile
 
 # Realsense API
 from pyrealsense2 import sensor as rs2_sensor
 from pyrealsense2 import frame as rs2_frame
+from pyrealsense2 import format as rs2_format
 from pyrealsense2 import option as rs2_option
+from pyrealsense2 import stream_profile as rs2_stream_profile
 
 # util packages
 import numpy
@@ -54,7 +56,7 @@ class RSSensor(Sensor):
         for prf_supported in self._sensor.profiles:
             for prf_requested in self._conf.stream_profiles:
 
-                if prf_requested.matches(prf_supported):
+                if _is_profile_matching(prf_requested, prf_supported):
                     rs_profiles.add(prf_supported)
 
         return rs_profiles
@@ -212,3 +214,21 @@ class RSSensor(Sensor):
             data = frame.get_data()
 
             stream.put(data) # put data to stream
+
+            # TODO put in format NDArray 
+
+
+def _is_profile_matching(sp : StreamProfile, sp_impl : rs2_stream_profile) -> bool:
+
+    if isinstance(sp, VideoStreamProfile):
+
+        if not sp_impl.is_video_stream_profile(): 
+            return False
+
+        # format is already being transformed
+        return (sp.width == sp_impl.width() and
+                sp.height == sp_impl.height() and
+                sp.fps == sp_impl.fps()) 
+
+    elif ...:
+        raise NotImplementedError() # TODO
