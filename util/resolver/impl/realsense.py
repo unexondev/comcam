@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 from core.sensor.impl.realsense import RSSensor
 from stream.profile import StreamProfile
-
-from ..descs import PVID
+from util.profile.impl.realsense import is_profile_matching
 
 from pyrealsense2 import context as rs_context
 from pyrealsense2 import camera_info as rs_camera_info
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..descs import PVID
 
 
 def resolve(stream_profile : StreamProfile,
@@ -29,7 +34,7 @@ def resolve(stream_profile : StreamProfile,
             rs_prfs_stream = sensor.get_stream_profiles()
             for rs_prf_stream in rs_prfs_stream:
 
-                if stream_profile.matches(rs_prf_stream):
+                if is_profile_matching(stream_profile, rs_prf_stream):
                     # create Sensor (RSSensor) instance
                     return RSSensor(
                         sensor=sensor
