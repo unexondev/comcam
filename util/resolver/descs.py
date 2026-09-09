@@ -1,11 +1,7 @@
 from __future__ import annotations
 
 from typing import Callable
-from typing import TYPE_CHECKING
 from dataclasses import dataclass
-
-if TYPE_CHECKING:
-    from .resolver import PVID
 
 from core.sensor import Sensor
 from stream.profile import StreamProfile
