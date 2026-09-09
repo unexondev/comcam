@@ -51,6 +51,26 @@ class Stream:
         return True
 
 
+    def get_oldest(self) -> NDArray | None:
+
+        with self._cond:
+
+            if not self._queue:
+                return None
+
+            return self._queue.popleft()
+
+
+    def get(self) -> NDArray | None:
+
+        with self._cond:
+
+            if not self._queue:
+                return None
+
+            return self._queue.pop()
+
+
     def wait_oldest(self, timeout_ms : int = 5000) -> NDArray | None:
         """
         Pops oldest data from stream or waits for new data to be arrived.
@@ -70,7 +90,7 @@ class Stream:
             return self._queue.popleft()
 
 
-    def wait_recent(self, timeout_ms : int = 5000) -> NDArray:
+    def wait(self, timeout_ms : int = 5000) -> NDArray:
         """
         Pops recent data from stream or waits for new data to be arrived.
         
