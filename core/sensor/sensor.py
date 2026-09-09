@@ -2,7 +2,7 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from threading import Lock # for thread-safe
 
-from eyebin.stream import Stream, StreamProfile
+from stream import Stream, StreamProfile
 
 
 @dataclass

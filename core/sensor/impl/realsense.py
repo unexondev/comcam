@@ -1,9 +1,9 @@
 from typing import Callable
 from dataclasses import dataclass
 
-from eyebin.core.sensor.sensor import *
-from eyebin.core.sensor.exceptions import *
-from eyebin.stream import StreamProfile
+from core.sensor.sensor import *
+from core.sensor.exceptions import *
+from stream import StreamProfile
 
 # Realsense API
 from pyrealsense2 import sensor as rs2_sensor

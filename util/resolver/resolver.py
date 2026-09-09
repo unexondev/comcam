@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from eyebin.stream.profile import StreamProfile
-from eyebin.core.sensor import Sensor
+from stream.profile import StreamProfile
+from core.sensor import Sensor
 
 from .descs import DESCS, PVID
 

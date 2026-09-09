@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from collections import defaultdict
 
-from eyebin.stream import Stream, StreamProfile
-from eyebin.core.sensor import Sensor, SensorConfig, SensorState
-from eyebin.core.sensor.exceptions import *
-from eyebin.util.resolver import SPResolver
-from eyebin.util.resolver import PVID
+from stream import Stream, StreamProfile
+from core.sensor import Sensor, SensorConfig, SensorState
+from core.sensor.exceptions import *
+from util.resolver import SPResolver
+from util.resolver import PVID
 
 import logging
 from rich.logging import RichHandler
@@ -32,7 +32,7 @@ class PipelineOptions:
         
 class Pipeline:
     """
-    The main pipeline for EyeBin project that organizes tasks.
+    The main pipeline that organizes tasks.
     """
 
     def __init__(self,

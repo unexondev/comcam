@@ -7,8 +7,8 @@ from dataclasses import dataclass
 if TYPE_CHECKING:
     from .resolver import PVID
 
-from eyebin.core.sensor import Sensor
-from eyebin.stream.profile import StreamProfile
+from core.sensor import Sensor
+from stream.profile import StreamProfile
 
 from .impl.realsense import resolve as rs_resolve
 

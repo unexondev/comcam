@@ -1,5 +1,5 @@
-from eyebin.core.sensor.impl.realsense import RSSensor
-from eyebin.stream.profile import StreamProfile
+from core.sensor.impl.realsense import RSSensor
+from stream.profile import StreamProfile
 
 from ..descs import PVID
 
