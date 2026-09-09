@@ -25,7 +25,7 @@ class SensorState(Enum):
 
 class Sensor:
     """
-    Abstraction class for all types of sensors.
+    Wrapper class for all types of sensors.
 
     This abstraction is responsible for physical implementation of sensors,
     higher level implementations are expected to depend on context. 
