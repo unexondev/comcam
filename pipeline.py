@@ -21,13 +21,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PipelineOptions:
-
-    max_len_captured_data_buffer : int
-    """
-    For scalibility we keep the captured RGB/depth data inside a buffer, then process them.
-    Since this buffer may cause a memory overhead, we allow you to set its maximum size.
-    If maximum length is exceeded, capturing process will be suspended until any of older data is dequeued.
-    """
+    pass
 
         
 class Pipeline:
@@ -40,16 +34,16 @@ class Pipeline:
                  ):
         
         self.opts = options
-        self.prf_to_sensor : dict[StreamProfile, Sensor] = {}
+        self._prf_to_sensor : dict[StreamProfile, Sensor] = {}
         self.resolver = SPResolver()
 
 
     def add_config(self,
                   profiles : set[StreamProfile],
                   pvid_device : PVID | None = None
-                  ):
+                  ) -> None:
 
-        prf_to_ss = self.prf_to_sensor
+        prf_to_ss = self._prf_to_sensor
 
         prf_to_ss_new : dict[StreamProfile, Sensor] = {}
 
@@ -66,7 +60,7 @@ class Pipeline:
 
             if sensor is None:
                 raise RuntimeError(
-                    "Could not resolve a sensor for stream profile=%r and PVID=%r." % (profile, pvid_device)
+                    "Could not resolve a sensor for stream profile:\n\t%r\nand PVID:\n\t%r." % (profile, pvid_device)
                     )
 
             prf_to_ss_new[profile] = sensor # do the mapping
@@ -86,31 +80,61 @@ class Pipeline:
         prf_to_ss.update(prf_to_ss_new) # update the mapping
 
 
-    def remove_config(self, profile : StreamProfile):
-        sensor = self.prf_to_sensor.pop(profile)
+    def remove_config(self, profile : StreamProfile) -> None:
+        sensor = self._prf_to_sensor.pop(profile)
 
 
-    def start(self):
+    def start(self, stream_profile : StreamProfile | None = None) -> None:
 
-        if not self.prf_to_sensor:
+        if not self._prf_to_sensor:
             raise RuntimeError(
                 "Sensor not found, please configure pipeline before starting it."
                 )
 
-        # get sensors only 'once'
-        sensors = sensors = list(dict.fromkeys(self.prf_to_sensor.values()))
+        # get sensors only 'once' if stream profile is not given
+        sensors = list(
+            dict.fromkeys(self._prf_to_sensor.values())
+            ) if stream_profile is None else [
+                self._prf_to_sensor[stream_profile]
+            ]
 
         for sensor in sensors:
 
-            # if open, close it
-            if sensor.state == SensorState.OPENED:
-                sensor.close()
-
             if sensor.state != SensorState.CLOSED:
-                raise RuntimeError("Sensor is already streaming.")
+                raise RuntimeError("Sensor has been already opened or streaming.")
 
             # open the sensor
             sensor.open()
 
             # start the sensor
             sensor.start()
+
+
+    def stop(self, stream_profile : StreamProfile | None = None) -> None:
+
+        # get sensors only 'once' if stream profile is not given
+        sensors = list(
+            dict.fromkeys(self._prf_to_sensor.values())
+            ) if stream_profile is None else [
+                self._prf_to_sensor[stream_profile]
+            ]
+
+        for sensor in sensors:
+
+            if sensor.state != SensorState.STREAMING:
+                raise RuntimeError("Sensor has not been streaming.")
+
+            # open the sensor
+            sensor.open()
+
+            # start the sensor
+            sensor.start()
+        
+
+
+    def sensor(self, stream_profile : StreamProfile | None = None) -> Sensor:
+        return self._prf_to_sensor[stream_profile]
+
+
+    def stream(self, stream_profile : StreamProfile) -> Stream:
+        return self._prf_to_sensor[stream_profile].config.stream
