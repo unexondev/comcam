@@ -38,6 +38,10 @@ class Pipeline:
         self.resolver = SPResolver()
 
 
+    def _sensors(self):
+        return list(dict.fromkeys(self._prf_to_sensor.values()))
+
+
     def add_config(self,
                   profiles : set[StreamProfile],
                   pvid_device : PVID | None = None
@@ -92,9 +96,7 @@ class Pipeline:
                 )
 
         # get sensors only 'once' if stream profile is not given
-        sensors = list(
-            dict.fromkeys(self._prf_to_sensor.values())
-            ) if stream_profile is None else [
+        sensors = self._sensors() if stream_profile is None else [
                 self._prf_to_sensor[stream_profile]
             ]
 
@@ -113,9 +115,7 @@ class Pipeline:
     def stop(self, stream_profile : StreamProfile | None = None) -> None:
 
         # get sensors only 'once' if stream profile is not given
-        sensors = list(
-            dict.fromkeys(self._prf_to_sensor.values())
-            ) if stream_profile is None else [
+        sensors = self._sensors() if stream_profile is None else [
                 self._prf_to_sensor[stream_profile]
             ]
 
@@ -130,6 +130,19 @@ class Pipeline:
             # start the sensor
             sensor.start()
         
+
+    def alive(self, stream_profile : StreamProfile | None = None):
+
+        # get sensors only 'once' if stream profile is not given
+        sensors = self._sensors() if stream_profile is None else [
+                self._prf_to_sensor[stream_profile]
+            ]
+
+        for sensor in sensors:
+            if sensor.state != SensorState.STREAMING:
+                return False
+
+        return True
 
 
     def sensor(self, stream_profile : StreamProfile | None = None) -> Sensor:
