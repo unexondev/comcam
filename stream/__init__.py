@@ -1,6 +1,7 @@
 from .stream import Stream
 from .profile import (
     StreamProfile,
+    StreamFormat,
     VideoStreamProfile
 )
 
@@ -8,5 +9,6 @@ from .profile import (
 __all__ = [
     "Stream",
     "StreamProfile",
+    "StreamFormat",
     "VideoStreamProfile"
 ]
