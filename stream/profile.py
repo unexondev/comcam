@@ -1,19 +1,32 @@
 from __future__ import annotations
-from dataclasses import dataclass
 
-from pyrealsense2 import stream as StreamType
-from pyrealsense2 import format as StreamFormat
-from pyrealsense2 import stream_profile, video_stream_profile
+from dataclasses import dataclass
+from enum import Enum
+
+
+class StreamFormat(Enum):
+    """
+    Common stream formats
+    """
+    GRAY8 = "gray8"
+    GRAY16 = "gray16"
+    RGB8 = "rgb8"
+    BGR8 = "bgr8"
+    RGBA8 = "rgba8"
+    BGRA8 = "bgra8"
+    YUV422 = "yuv422"
+    MJPEG = "mjpeg"
+    DEPTH16 = "depth16"
+    RAW8 = "raw8"
+    RAW10 = "raw10"
+    RAW12 = "raw12"
+    RAW16 = "raw16"
+    MOTION_XYZ32F = "motion_xyz32f"
 
 
 @dataclass
 class StreamProfile:
-
-    stream_type : StreamType
     format : StreamFormat
-
-    def matches(self, other : stream_profile | StreamProfile):
-        raise NotImplementedError()
 
 
 @dataclass
@@ -23,24 +36,11 @@ class VideoStreamProfile(StreamProfile):
     height : int
     fps : int
 
-
-    def matches(self, other : video_stream_profile | VideoStreamProfile) -> bool:
-
-        if isinstance(other, video_stream_profile):
-            return self.stream_type == other.stream_type() and \
-                self.format == other.format() and \
-                self.width == other.width() and \
-                self.height == other.height() and \
-                self.fps == other.fps()
-
-        if isinstance(other, VideoStreamProfile):
-            return self == other
-
-        return False
-
-
     def __hash__(self):
         return hash((
-            self.width, self.height, self.fps,
-            self.stream_type, self.format
+            self.width, self.height,
+            self.fps, self.format
             ))
+
+
+# TODO: add more implementations for other stream types
