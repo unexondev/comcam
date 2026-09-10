@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "comcam"
+version = "0.1.0"
+dependencies = [
+    "pyusb",
+    "rich",
+    "numpy",
+]
+requires-python = ">=3.12"
+authors = [
+  {name = "Ahmet Çelikbaş", email = "ahmetcelikbas333333@gmail.com"}
+]
+maintainers = [
+  {name = "Ahmet Çelikbaş", email = "ahmetcelikbas333333@gmail.com"}
+]
+description = "Common API across different camera ecosystems."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E.*"]
+keywords = ["camera", "common", "generic", "realsense"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.urls]
+Homepage = "https://github.com/unexondev/comcam"
+Repository = "https://github.com/unexondev/comcam"
+"Bug Tracker" = "https://github.com/unexondev/comcam/issues"
+# Changelog = "https://github.com/me/unexondev/blob/main/CHANGELOG.md"
