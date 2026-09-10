@@ -1,3 +1,0 @@
-pyusb
-rich
-numpy
