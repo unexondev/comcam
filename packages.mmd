@@ -1,0 +1,37 @@
+classDiagram
+  class comcam {
+  }
+  class core {
+  }
+  class mixins {
+  }
+  class optimization {
+  }
+  class sensor {
+  }
+  class exceptions {
+  }
+  class impl {
+  }
+  class realsense {
+  }
+  class sensor {
+  }
+  class pipeline {
+  }
+  class stream {
+  }
+  class profile {
+  }
+  class stream {
+  }
+  class test {
+  }
+  sensor --> sensor
+  sensor --> stream
+  pipeline --> sensor
+  pipeline --> stream
+  stream --> stream
+  stream --> profile
+  test --> pipeline
+  test --> stream
