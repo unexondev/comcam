@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from core.sensor.impl.realsense import RSSensor
-from stream.profile import StreamProfile
-from util.profile.impl.realsense import is_profile_matching
+from comcam.stream.profile import StreamProfile
+from comcam.util.profile.impl.realsense import is_profile_matching
 
 from pyrealsense2 import context as rs_context
 from pyrealsense2 import camera_info as rs_camera_info

@@ -1,5 +1,5 @@
-from pipeline import Pipeline, PipelineOptions
-from stream import VideoStreamProfile, StreamFormat
+from comcam.pipeline import Pipeline, PipelineOptions
+from comcam.stream import VideoStreamProfile, StreamFormat
 
 import numpy
 

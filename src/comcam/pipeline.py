@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from collections import defaultdict
 
-from stream import Stream, StreamProfile
+from comcam.stream import Stream, StreamProfile
 from core.sensor import Sensor, SensorConfig, SensorState
 from core.sensor.exceptions import *
-from util.resolver import SPResolver
-from util.resolver import PVID
+from comcam.util.resolver import SPResolver
+from comcam.util.resolver import PVID
 
 import logging
 from rich.logging import RichHandler

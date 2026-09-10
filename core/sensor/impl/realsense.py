@@ -4,7 +4,7 @@ from core.sensor.sensor import *
 from core.sensor.exceptions import *
 
 # Realsense implementations
-from util.profile.impl.realsense import is_profile_matching
+from comcam.util.profile.impl.realsense import is_profile_matching
 
 # Realsense API
 from pyrealsense2 import sensor as rs2_sensor

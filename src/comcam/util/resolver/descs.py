@@ -4,7 +4,7 @@ from typing import Callable
 from dataclasses import dataclass
 
 from core.sensor import Sensor
-from stream.profile import StreamProfile
+from comcam.stream.profile import StreamProfile
 
 from .impl.realsense import resolve as rs_resolve
 
