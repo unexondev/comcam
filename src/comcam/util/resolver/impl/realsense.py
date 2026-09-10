@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from core.sensor.impl.realsense import RSSensor
+from comcam.core.sensor.impl.realsense import RSSensor
 from comcam.stream.profile import StreamProfile
 from comcam.util.profile.impl.realsense import is_profile_matching
 

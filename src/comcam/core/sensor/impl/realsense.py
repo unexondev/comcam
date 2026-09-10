@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from core.sensor.sensor import *
-from core.sensor.exceptions import *
+from comcam.core.sensor.sensor import *
+from comcam.core.sensor.exceptions import *
 
 # Realsense implementations
 from comcam.util.profile.impl.realsense import is_profile_matching

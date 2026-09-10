@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from comcam.stream.profile import StreamProfile
-from core.sensor import Sensor
+from comcam.core.sensor import Sensor
 
 from .descs import DESCS, PVID
 
