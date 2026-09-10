@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from collections import defaultdict
 
 from comcam.stream import Stream, StreamProfile
-from core.sensor import Sensor, SensorConfig, SensorState
-from core.sensor.exceptions import *
+from comcam.core.sensor import Sensor, SensorConfig, SensorState
+from comcam.core.sensor.exceptions import *
 from comcam.util.resolver import SPResolver
 from comcam.util.resolver import PVID
 
@@ -138,11 +138,9 @@ class Pipeline:
                 self._prf_to_sensor[stream_profile]
             ]
 
-        for sensor in sensors:
-            if sensor.state != SensorState.STREAMING:
-                return False
-
-        return True
+        return bool(sensors) and all(
+            sensor.state == SensorState.STREAMING for sensor in sensors
+            )
 
 
     def sensor(self, stream_profile : StreamProfile | None = None) -> Sensor:
