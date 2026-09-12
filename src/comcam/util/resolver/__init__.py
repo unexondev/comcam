@@ -1,7 +1,7 @@
-from .resolver import SPResolver
-from .descs import PVID
+from .resolver import SensorResolver
 
+from .impl import realsense # register realsense
 
 __all__ = [
-    "SPResolver",
+    "SensorResolver",
 ]

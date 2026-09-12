@@ -27,3 +27,8 @@ class SensorInfoError(SensorError):
     """
     Raised when information couldn't be gathered from sensor.
     """
+
+class SPNotSupportedError(SensorError):
+    """
+    Raised when stream profile is not supported by the sensor.
+    """

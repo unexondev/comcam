@@ -1,43 +1,45 @@
-from __future__ import annotations
+from collections.abc import Iterator
 
-from comcam.core.sensor.impl.realsense import RSSensor
+# import Realsense formatter
+from comcam.util.formatter.impl.realsense import RSFormatter
+
+from comcam.core.sensor import DeviceDesc
+from comcam.core.sensor.impl.realsense import RSSensor, RSSensorOptions
 from comcam.stream.profile import StreamProfile
+
 from comcam.util.profile.impl.realsense import is_profile_matching
 
 from pyrealsense2 import context as rs_context
 from pyrealsense2 import camera_info as rs_camera_info
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..descs import PVID
 
-
-def resolve(stream_profile : StreamProfile,
-            pvid : PVID | None = None
-            ) -> RSSensor | None:
+def resolve_realsense2(stream_profile : StreamProfile) -> Iterator[ RSSensor ]:
 
     ctx = rs_context() # context is required
 
     devices = ctx.query_devices()
     for device in devices:
 
-        if pvid is not None:
-
-            pid_str = device.get_info(rs_camera_info.product_id)
-            pid = int(pid_str, base=16)
-
-            if pid != pvid.product_id:
-                continue
-
         for sensor in device.sensors:
 
             rs_prfs_stream = sensor.get_stream_profiles()
             for rs_prf_stream in rs_prfs_stream:
 
-                if is_profile_matching(stream_profile, rs_prf_stream):
-                    # create Sensor (RSSensor) instance
-                    return RSSensor(
-                        sensor=sensor
-                        )
+                if (is_profile_matching(stream_profile, rs_prf_stream) and
+                    RSFormatter.convertible(rs_prf_stream.format(), stream_profile.format)):
+
+                    desc = DeviceDesc(
+                        product_name=device.get_info(rs_camera_info.name),
+                        serial_number=sensor.get_info(rs_camera_info.serial_number)
+                    )
+
+                    yield RSSensor(
+                        sensor=sensor,
+                        device_desc=desc,
+                        options=RSSensorOptions()
+                        ) # yield sensor
                 
-    return None
+
+# Register Realsense SDK
+from comcam.util.resolver import SensorResolver
+SensorResolver.register("Realsense", resolver=resolve_realsense2)

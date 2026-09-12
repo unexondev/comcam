@@ -1,55 +1,50 @@
-from dataclasses import dataclass
+from typing import Callable
+from collections.abc import Iterator
 
 from comcam.stream.profile import StreamProfile
 from comcam.core.sensor import Sensor
 
-from .descs import DESCS, PVID
 
-import usb.core # for enumerating devices
-
-
-class SPResolver: # StreamProfileResolver
+class SensorResolver:
     """
-    Abstraction class for dependency resolution
-    from stream profiles to all types of sensors.
-    """
+    Utilization class that resolves stream profiles to sensors.
 
-    def resolve(self,
-                stream_profile : StreamProfile,
-                pvid : PVID | None = None
-                ) -> Sensor | None:
+    Guarantees that 'Sensor' instance will be
+    created once for each sensor by _caching_ them. 
+    """
+    TyResolver = Callable[[ StreamProfile ], Iterator[ Sensor ]]
+
+    api_resolvers : dict[str, TyResolver] = {}
+
+    _sensor_cache : dict[Sensor, Sensor] = {}
+
+
+    @classmethod
+    def register(cls,
+                 name : str,
+                 resolver : TyResolver
+                 ) -> None:
+        cls.api_resolvers[name] = resolver
+
+
+    @classmethod
+    def resolve(cls,
+                stream_profile : StreamProfile
+                ) -> Iterator[Sensor]:
         """
-        Resolve the stream profile to a sensor that is capable of streaming on given profile.
+        Resolves all the sensors that are capable of stream in 'all' of the given stream profiles.
 
         Args:
-            stream_profile: A `StreamProfile` object to check that is streamable while discovering sensors.
-            pvid (optional): A `PVID` object describes which device should be considered while discovering sensors.
+            stream_profiles: A set of `StreamProfile` objects to check that are streamable while discovering sensors.
         
         Returns:
-            A `Sensor` object wraps the sensor that capable of streaming on given profile, `None` otherwise.
+            An iterator of 'Sensor' objects.
         """
 
-        devs_iter = usb.core.find(find_all=True)
-        for device in devs_iter:
-
-            pvid_dev = PVID(
-                product_id=device.idProduct,
-                vendor_id=device.idVendor
-                )
-
-            if (pvid is not None and
-                pvid != pvid_dev):
-                continue
-            
-            if pvid_dev not in DESCS:
-                continue
-            
-            sensor = DESCS[pvid_dev](
-                stream_profile=stream_profile,
-                pvid=pvid # pass pvid
-            ) # try to resolve sensor
-
-            if sensor is not None:
-                return sensor
-
-        return None # no sensor found capable to stream on given profile
+        for resolver in cls.api_resolvers.values():
+            for sensor in resolver(stream_profile):
+                cached = cls._sensor_cache.get(sensor)
+                if cached is None:
+                    cls._sensor_cache[sensor] = sensor # save it to cache
+                    cached = sensor
+                yield cached # return it

@@ -1,11 +1,9 @@
 from dataclasses import dataclass
-from collections import defaultdict
 
 from comcam.stream import Stream, StreamProfile
 from comcam.core.sensor import Sensor, SensorConfig, SensorState
 from comcam.core.sensor.exceptions import *
-from comcam.util.resolver import SPResolver
-from comcam.util.resolver import PVID
+from comcam.util.resolver import SensorResolver
 
 import logging
 from rich.logging import RichHandler
@@ -30,65 +28,75 @@ class Pipeline:
     """
 
     def __init__(self,
-                 options : PipelineOptions
+                 options : PipelineOptions,
+                 resolver : SensorResolver = None
                  ):
         
         self.opts = options
         self._prf_to_sensor : dict[StreamProfile, Sensor] = {}
-        self.resolver = SPResolver()
+        self.resolver = SensorResolver() if resolver is None else resolver
 
 
-    def _sensors(self):
+    def sensors(self):
+
         return list(dict.fromkeys(self._prf_to_sensor.values()))
 
 
-    def add_config(self,
-                  profiles : set[StreamProfile],
-                  pvid_device : PVID | None = None
-                  ) -> None:
+    def get_sensor(self, stream_profile : StreamProfile):
+
+        return self._prf_to_sensor[stream_profile]
+
+
+    def create_stream(self, 
+                      stream_profile : StreamProfile,
+                      sensor : Sensor | None = None
+                      ) -> Stream:
 
         prf_to_ss = self._prf_to_sensor
 
-        prf_to_ss_new : dict[StreamProfile, Sensor] = {}
+        if stream_profile in prf_to_ss:
+            # remove configuration if exists
+            self.remove_stream(stream_profile)
 
-        for profile in profiles:
-
-            if profile in prf_to_ss:
-                # remove configuration if exists
-                self.remove_config(profile)
-
-            sensor = self.resolver.resolve(
-                stream_profile=profile,
-                pvid=pvid_device
+        # resolve sensor if not given
+        sensor = next(
+            self.resolver.resolve(stream_profile), None
+            ) if sensor is None else sensor
+        
+        if sensor is None:
+            raise RuntimeError(
+                "Could not resolve a sensor for stream profile: %r" % stream_profile
                 )
 
-            if sensor is None:
-                raise RuntimeError(
-                    "Could not resolve a sensor for stream profile:\n\t%r\nand PVID:\n\t%r." % (profile, pvid_device)
-                    )
+        # create stream
+        stream = Stream()
 
-            prf_to_ss_new[profile] = sensor # do the mapping
+        # tell sensor to use that
+        sensor.config.use(stream_profile, stream)
 
-        sensor_profiles : defaultdict[Sensor, set[StreamProfile]] = defaultdict(set)
-        for profile, sensor in prf_to_ss_new.items():
+        # map it to the profile
+        prf_to_ss[stream_profile] = sensor
 
-            sensor_profiles[sensor].add(profile)
-
-        for sensor, _profiles in sensor_profiles.items():
-
-            sensor.configure(SensorConfig(
-                stream=Stream(),
-                stream_profiles=frozenset(_profiles)
-            ))
-
-        prf_to_ss.update(prf_to_ss_new) # update the mapping
+        return stream
 
 
-    def remove_config(self, profile : StreamProfile) -> None:
-        sensor = self._prf_to_sensor.pop(profile)
+    def remove_stream(self, stream_profile : StreamProfile) -> None:
 
+        sensor = self._prf_to_sensor.pop(stream_profile, None)
 
-    def start(self, stream_profile : StreamProfile | None = None) -> None:
+        if sensor is None:
+            raise RuntimeError(
+                "Stream profile %r doesn't exist "
+                "in current stream profiles." % stream_profile)
+
+        if sensor.state != SensorState.CLOSED:
+            raise RuntimeError(
+                "Sensor must be closed to mutate its config."
+                )
+
+        sensor.config.remove(stream_profile)
+
+    def start(self, sensor : Sensor | None = None) -> None:
 
         if not self._prf_to_sensor:
             raise RuntimeError(
@@ -96,50 +104,44 @@ class Pipeline:
                 )
 
         # get sensors only 'once' if stream profile is not given
-        sensors = self._sensors() if stream_profile is None else [
-                self._prf_to_sensor[stream_profile]
-            ]
+        sensors = self.sensors() if sensor is None else [ sensor ]
 
-        for sensor in sensors:
+        for _sensor in sensors:
 
-            if sensor.state != SensorState.CLOSED:
+            if _sensor.state != SensorState.CLOSED:
                 raise RuntimeError("Sensor has been already opened or streaming.")
 
             # open the sensor
-            sensor.open()
+            _sensor.open()
 
             # start the sensor
-            sensor.start()
+            _sensor.start()
 
 
-    def stop(self, stream_profile : StreamProfile | None = None) -> None:
+    def stop(self, sensor : Sensor | None = None) -> None:
 
         # get sensors only 'once' if stream profile is not given
-        sensors = self._sensors() if stream_profile is None else [
-                self._prf_to_sensor[stream_profile]
-            ]
+        sensors = self.sensors() if sensor is None else [ sensor ]
 
-        for sensor in sensors:
+        for _sensor in sensors:
 
-            if sensor.state != SensorState.STREAMING:
+            if _sensor.state != SensorState.STREAMING:
                 raise RuntimeError("Sensor has not been streaming.")
 
-            # open the sensor
-            sensor.open()
+            # stop the sensor
+            _sensor.stop()
 
-            # start the sensor
-            sensor.start()
-        
+            # close the sensor
+            _sensor.close()
 
-    def alive(self, stream_profile : StreamProfile | None = None):
+
+    def alive(self, sensor : Sensor | None = None):
 
         # get sensors only 'once' if stream profile is not given
-        sensors = self._sensors() if stream_profile is None else [
-                self._prf_to_sensor[stream_profile]
-            ]
+        sensors = self.sensors() if sensor is None else [ sensor ]
 
         return bool(sensors) and all(
-            sensor.state == SensorState.STREAMING for sensor in sensors
+            _sensor.state == SensorState.STREAMING for _sensor in sensors
             )
 
 
@@ -148,4 +150,5 @@ class Pipeline:
 
 
     def stream(self, stream_profile : StreamProfile) -> Stream:
-        return self._prf_to_sensor[stream_profile].config.stream
+        sensor = self._prf_to_sensor[stream_profile]
+        return sensor.config.get_stream(stream_profile)

@@ -4,12 +4,15 @@ from comcam.core.sensor.sensor import *
 from comcam.core.sensor.exceptions import *
 
 # Realsense implementations
+from comcam.util.formatter.impl.realsense import RSFormatter
 from comcam.util.profile.impl.realsense import is_profile_matching
 
 # Realsense API
 from pyrealsense2 import sensor as rs2_sensor
 from pyrealsense2 import frame as rs2_frame
 from pyrealsense2 import option as rs2_option
+from pyrealsense2 import camera_info as rs2_camera_info
+from pyrealsense2 import stream_profile as rs2_stream_profile
 
 # util packages
 import numpy
@@ -34,12 +37,14 @@ class RSSensor(Sensor):
 
     def __init__(self,
                  sensor : rs2_sensor,
+                 device_desc : DeviceDesc,
                  options : RSSensorOptions,
-                 config : SensorConfig = None
+                 config : SensorConfig | None = None
                  ):
 
         # initialize Sensor base class
         super().__init__(
+            device_desc=device_desc,
             options=options,
             config=config
         )
@@ -47,41 +52,59 @@ class RSSensor(Sensor):
         # store the pyrealsense2 sensor instance
         self._sensor = sensor
 
+        # create profile map
+        self._prf_map : dict[rs2_stream_profile, StreamProfile] = {}
 
-    def _resolve_rs_stream_profiles(self) -> set[StreamProfile]:
 
-        rs_profiles : set[StreamProfile] = set()
+    def __hash__(self):
 
-        for prf_supported in self._sensor.profiles:
-            for prf_requested in self._conf.stream_profiles:
+        return hash((
+            self.device,
+            self._sensor.get_info(rs2_camera_info.name) # name of sensor, not device
+        ))
 
-                if is_profile_matching(prf_requested, prf_supported):
-                    rs_profiles.add(prf_supported)
 
-        return rs_profiles
+    def __eq__(self, other):
+
+        if not isinstance(other, RSSensor):
+            return NotImplemented
+
+        return (self.device == other.device and
+                (self._sensor.get_info(rs2_camera_info.name) 
+                 == other._sensor.get_info(rs2_camera_info.name))) 
 
 
     def open(self):
 
         with self._lock:
 
+            # check if sensor is configured
+            if not self._configured():
+                raise RuntimeError(
+                    "Sensor must be configured before starting."
+                    )
+
+            # check if already open
             if self._state != SensorState.CLOSED:
                 raise RuntimeError(
                     "Sensor must be closed before opening."
                     )
 
-            # check if profiles are given
-            if not self._conf.stream_profiles:
-                raise RuntimeError(
-                    "Stream profiles must be defined before opening sensor."
-                    )
+            # prepare to open
+            self._prepare_open()
 
-            # retrieve pyrealsense2 stream profiles
-            rs_profiles = self._resolve_rs_stream_profiles()
+            # get realsense stream profiles
+            profiles_rs = list(self._prf_map.keys())
+            if not profiles_rs:
+                # fake (empty) stream can occur,
+                # we don't want that
+                raise RuntimeError(
+                    "No stream profiles are passed, please configure sensor properly."
+                    )
 
             # open the sensor
             try:
-                self._sensor.open(profiles=rs_profiles)
+                self._sensor.open(profiles=profiles_rs)
                 super().open()
 
             except RuntimeError as err:
@@ -121,13 +144,7 @@ class RSSensor(Sensor):
                     "Sensor must be opened before starting."
                     )
 
-            # check stream exists
-            if self._conf.stream is None:
-                raise RuntimeError(
-                    "Stream must be defined before starting sensor."
-                    )
-
-            # start the sensor directly
+            # try to start the sensor
             try:
                 # start sensor with our producer callback
                 self._sensor.start(
@@ -202,16 +219,38 @@ class RSSensor(Sensor):
             return True
 
 
+    def _prepare_open(self):
+
+        for prf_requested in self._conf.profiles_iter():
+
+            for prf_supported in self._sensor.profiles:
+
+                if (is_profile_matching(prf_requested, prf_supported) and
+                    RSFormatter.convertible(prf_supported.format(), prf_requested.format)):
+
+                    self._prf_map[prf_supported] = prf_requested
+
+                    break # rs profile has been added go next
+
+            else:
+                raise SPNotSupportedError(
+                    "Stream profile %r not supported by sensor." % prf_requested
+                    )
+
+
     def _produce_stream_data(self, frame : rs2_frame):
 
         with self._lock:
 
-            stream = self._conf.stream
-            if stream is None:
-                return # no outgoing stream
+            prf_stream = self._prf_map[frame.profile]
+            stream = self._conf.get_stream(prf_stream)
 
-            data = frame.get_data()
+            data = frame.get_data() # get data
 
-            stream.put(data) # put data to stream
-
-            # TODO put in format NDArray 
+            stream.put(
+                RSFormatter.convert(
+                    numpy.asanyarray(data), # convert to numpy array first
+                    frame.profile.format(),
+                    self._prf_map[frame.profile].format
+                    )
+                ) # put data to stream
