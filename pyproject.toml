@@ -30,6 +30,7 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-cov",
 ]
 
 [project.urls]
