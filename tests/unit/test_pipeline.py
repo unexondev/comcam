@@ -27,15 +27,6 @@ class FakeSensor(Sensor):
                 self.device.serial_number == other.device.serial_number)
 
 
-class FakeResolver:
-
-    def __init__(self, sensors : list[Sensor]):
-        self.iter_sensors = iter(sensors)
-
-    def resolve(self, stream_profile):
-        yield from self.iter_sensors
-
-
 def test_common_flow():
 
     ppl = Pipeline(PipelineOptions())
@@ -87,6 +78,14 @@ def test_dupl_config():
 
 def test_with_auto_resolve():
 
+    class FakeResolver:
+
+        def __init__(self, sensors : list[Sensor]):
+            self.iter_sensors = iter(sensors)
+
+        def resolve(self, stream_profile):
+            yield from self.iter_sensors
+
     ppl = Pipeline(
         PipelineOptions(),
         resolver=FakeResolver([ FakeSensor() ])
@@ -105,6 +104,14 @@ def test_with_auto_resolve():
 
 
 def test_pipeline_sensor_scope():
+
+    class FakeResolver:
+
+        def __init__(self, sensors : list[Sensor]):
+            self.iter_sensors = iter(sensors)
+
+        def resolve(self, stream_profile):
+            yield from self.iter_sensors
 
     sensor_0, vsp_0 = FakeSensor(), VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
     sensor_1, vsp_1 = FakeSensor(), VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 30)
@@ -149,7 +156,82 @@ def test_pipeline_sensor_scope():
 def test_stream_supported_by_multiple_sensors():
     """
     Let's see if it works properly if given stream
-    profiles are supported by different sensors.
+    profile is supported by different sensors.
     """
 
-    
+    class FakeResolver:
+
+        def __init__(self, sensors : list[Sensor]):
+            self.sensors = sensors
+
+        def resolve(self, stream_profile):
+            # iterates from beginning every call
+            yield from self.sensors
+
+    sensor_0 = FakeSensor()
+    sensor_1 = FakeSensor()
+
+    vsp = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
+
+    ppl = Pipeline(
+        PipelineOptions(),
+        resolver=FakeResolver([ sensor_0, sensor_1 ])
+        )
+
+    ppl.create_stream(vsp)
+
+    assert ppl.get_sensor(vsp) == sensor_0
+
+    ppl.create_stream(vsp)
+
+    assert ppl.get_sensor(vsp) == sensor_0
+
+    ppl.remove_stream(vsp)
+
+    with pytest.raises(KeyError):
+        ppl.stream(vsp)
+
+    stream = ppl.create_stream(vsp, sensor_1)
+
+    assert ppl.stream(vsp) == stream
+
+    ppl.start()
+
+    assert ppl.alive()
+
+
+def test_sensor_streams_multiple_profiles():
+    """
+    Let's see if it works properly if different stream
+    profiles are streamed by single sensor.
+    """
+
+    class FakeResolver:
+
+        def __init__(self, sensors : list[Sensor]):
+            self.sensors = sensors
+
+        def resolve(self, stream_profile):
+            # iterates from beginning every call
+            yield from self.sensors
+
+    sensor = FakeSensor()
+
+    vsp_0 = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
+    vsp_1 = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 30)
+
+    ppl = Pipeline(
+        PipelineOptions(),
+        resolver=FakeResolver([ sensor ])
+        )
+
+    stream_0 = ppl.create_stream(vsp_0)
+    stream_1 = ppl.create_stream(vsp_1)
+
+    assert stream_0 is not stream_1
+
+    assert ppl.get_sensor(vsp_0) == ppl.get_sensor(vsp_1) == sensor
+
+    ppl.start()
+
+    assert ppl.alive()
