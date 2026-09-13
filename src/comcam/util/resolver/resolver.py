@@ -29,7 +29,8 @@ class SensorResolver:
 
     @classmethod
     def resolve(cls,
-                stream_profile : StreamProfile
+                stream_profile : StreamProfile,
+                api_name : str | None = None
                 ) -> Iterator[Sensor]:
         """
         Resolves all the sensors that are capable of stream in 'all' of the given stream profiles.
@@ -41,10 +42,17 @@ class SensorResolver:
             An iterator of 'Sensor' objects.
         """
 
-        for resolver in cls.api_resolvers.values():
+        for _api_name, resolver in cls.api_resolvers.items():
+
+            if api_name is not None and api_name != _api_name:
+                continue
+
             for sensor in resolver(stream_profile):
+
                 cached = cls._sensor_cache.get(sensor)
+
                 if cached is None:
                     cls._sensor_cache[sensor] = sensor # save it to cache
                     cached = sensor
+
                 yield cached # return it
