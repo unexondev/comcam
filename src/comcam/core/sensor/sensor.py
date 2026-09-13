@@ -159,13 +159,26 @@ class Sensor:
         raise NotImplementedError()
 
 
-    def _configured(self):
-        return not self._conf.is_empty()
+    def configured(self):
+        with self._lock:
+            return self._configured()
 
 
     """
     Private Functions
     """
+
+    def _sanity_check_open(self):
+
+        if not self._configured():
+            raise RuntimeError(
+                "Sensor must be configured before starting."
+                )
+        
+
+    def _configured(self):
+        return not self._conf.is_empty()
+    
 
     def _fail(self):
         self._state = SensorState.ERRORED

@@ -79,10 +79,7 @@ class RSSensor(Sensor):
         with self._lock:
 
             # check if sensor is configured
-            if not self._configured():
-                raise RuntimeError(
-                    "Sensor must be configured before starting."
-                    )
+            self._sanity_check_open()
 
             # check if already open
             if self._state != SensorState.CLOSED:
