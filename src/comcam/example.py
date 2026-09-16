@@ -4,4 +4,4 @@ from pyrealsense2 import format
 
 import numpy as np
 
-result = RSFormatter.convert(np.array([]), format.rgb8, StreamFormat.RGB8)
+result = RSFormatter.convert_to(np.array([]), format.rgb8, StreamFormat.RGB8)

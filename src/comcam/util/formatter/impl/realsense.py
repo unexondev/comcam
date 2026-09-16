@@ -85,20 +85,33 @@ class RSFormatter(Formatter):
 
     })
 
+
     @classmethod
-    def convertible(cls,
+    def get_converters(cls, source_format : rs2_format):
+        # just for type hinting
+        return super().get_converters(source_format)
+
+
+    @classmethod
+    def convertible_to(cls,
                     source_format : rs2_format,
                     destination_format : StreamFormat
                     ):
         # just for type hinting
-        return super().convertible(source_format, destination_format)
+        return super().convertible_to(source_format, destination_format)
 
 
     @classmethod
-    def convert(cls,
-                source_data : NDArray,
-                source_format : rs2_format,
-                destination_format : StreamFormat
-                ) -> NDArray:
+    def convertible(cls, source_format : rs2_format):
+        # just for type hinting
+        return super().convertible(source_format)
 
-        return super().convert(source_data, source_format, destination_format)
+
+    @classmethod
+    def convert_to(cls, 
+                   source_data : NDArray, 
+                   source_format : rs2_format, 
+                   destination_format : StreamFormat
+                    ) -> NDArray:
+        # just for type hinting
+        return super().convert_to(source_data, source_format, destination_format)

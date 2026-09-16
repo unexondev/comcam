@@ -1,4 +1,4 @@
-from typing import Callable, Any
+from typing import Iterable, Callable, Any
 from collections import defaultdict
 
 from comcam.stream.profile import StreamFormat
@@ -11,20 +11,43 @@ class Formatter:
     converters : defaultdict[
         Any, # source format
         dict[StreamFormat, Callable[[NDArray], NDArray]] # converter
-        ] = defaultdict(dict)
+        ]
     """
     A mapping from source types to converter mappings.
     """
 
     @classmethod
-    def convertible(cls,
+    def get_converters(
+        cls,
+        source_format : Any
+        ) -> Iterable[
+            tuple[StreamFormat, Callable[[NDArray], NDArray]]
+        ]:
+
+        converters = cls.converters.get(source_format)
+
+        if converters is None:
+            raise RuntimeError(
+                "No conversion exist from %r to any format." % source_format
+                )
+        
+        return converters.items()
+    
+
+    @classmethod
+    def convertible_to(cls,
                     source_format : Any,
                     destination_format : StreamFormat
                     ):
 
         converters = cls.converters.get(source_format)
-
         return converters is not None and destination_format in converters
+
+
+    @classmethod
+    def convertible(cls, source_format : Any):
+        converters = cls.converters.get(source_format)
+        return bool(converters)
 
 
     @classmethod
@@ -38,7 +61,7 @@ class Formatter:
 
 
     @classmethod
-    def convert(cls,
+    def convert_to(cls,
                 source_data : NDArray,
                 source_format : Any,
                 destination_format : StreamFormat
