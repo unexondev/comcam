@@ -172,7 +172,7 @@ class Sensor:
 
         if not self._configured():
             raise RuntimeError(
-                "Sensor must be configured before starting."
+                "Sensor must be configured before opening."
                 )
         
 
