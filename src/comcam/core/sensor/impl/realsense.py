@@ -5,7 +5,7 @@ from comcam.core.sensor.exceptions import *
 
 # Realsense implementations
 from comcam.util.formatter.impl.realsense import RSFormatter
-from comcam.util.profile.impl.realsense import is_profile_matching
+from comcam.stream.profile.lifter.impl.realsense import RSProfileLifter
 
 # Realsense API
 from pyrealsense2 import sensor as rs2_sensor
@@ -53,7 +53,7 @@ class RSSensor(Sensor):
         self._sensor = sensor
 
         # create profile map
-        self._prf_map : dict[rs2_stream_profile, StreamProfile] = {}
+        self._profile_map : dict[rs2_stream_profile, StreamProfile] = {}
 
 
     def __hash__(self):
@@ -91,7 +91,7 @@ class RSSensor(Sensor):
             self._prepare_open()
 
             # get realsense stream profiles
-            profiles_rs = list(self._prf_map.keys())
+            profiles_rs = list(self._profile_map.keys())
             if not profiles_rs:
                 # fake (empty) stream can occur,
                 # we don't want that
@@ -218,20 +218,19 @@ class RSSensor(Sensor):
 
     def _prepare_open(self):
 
-        for prf_requested in self._conf.profiles_iter():
+        for profile_requested in self._conf.profiles_iter():
 
-            for prf_supported in self._sensor.profiles:
+            for rs_profile_supported in self._sensor.profiles:
 
-                if (is_profile_matching(prf_requested, prf_supported) and
-                    RSFormatter.convertible(prf_supported.format(), prf_requested.format)):
+                if self.rs_profile_matches(rs_profile_supported, profile_requested):
 
-                    self._prf_map[prf_supported] = prf_requested
+                    self._profile_map[rs_profile_supported] = profile_requested
 
-                    break # rs profile has been added go next
+                    break # requested profile is mapped go next
 
             else:
                 raise SPNotSupportedError(
-                    "Stream profile %r not supported by sensor." % prf_requested
+                    "Stream profile %r not supported by sensor." % profile_requested
                     )
 
 
@@ -239,15 +238,39 @@ class RSSensor(Sensor):
 
         with self._lock:
 
-            prf_stream = self._prf_map[frame.profile]
+            prf_stream = self._profile_map[frame.profile]
             stream = self._conf.get_stream(prf_stream)
 
             data = frame.get_data() # get data
 
             stream.put(
-                RSFormatter.convert(
+                RSFormatter.convert_to(
                     numpy.asanyarray(data), # convert to numpy array first
                     frame.profile.format(),
-                    self._prf_map[frame.profile].format
+                    self._profile_map[frame.profile].format
                     )
                 ) # put data to stream
+
+
+    @staticmethod
+    def rs_profile_matches(rs_stream_profile : rs2_stream_profile,
+                           stream_profile : StreamProfile
+                           ) -> bool:
+        
+        fmt_rs = rs_stream_profile.format()
+
+        sp_lifted = None
+        try:
+            sp_lifted = RSProfileLifter.lift(rs_stream_profile)
+        except NotImplementedError:
+            return False
+
+        # RS profile matches with stream profile if:
+        # - both have same frame rate &
+        # - both represents same frame &
+        # - RS profile's format is convertable to requested profile's
+        return (
+            sp_lifted.fps == rs_stream_profile.fps() and
+            sp_lifted.get_frame() == stream_profile.get_frame() and
+            RSFormatter.convertible_to(fmt_rs, stream_profile.format)
+            )
