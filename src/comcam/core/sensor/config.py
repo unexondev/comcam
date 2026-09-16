@@ -2,7 +2,7 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Iterator
 
-from comcam.stream.profile import StreamProfile
+from comcam.stream.profile import StreamProfile, VideoStreamProfile
 from comcam.stream.stream import Stream
 
 
@@ -24,9 +24,26 @@ class PublicConfigMixin:
         return not self._stream_map
 
 
-class PrivateConfigMixin(PublicConfigMixin):
+    def __iter__(self):
+        return self.profiles_iter()
+
+
+class SensorConfig(PublicConfigMixin):
+
+    def __init__(self, stream_map : dict[StreamProfile, Stream] = None):
+
+        # initialize the stream map
+        self._stream_map = {} if stream_map is None else stream_map
+
 
     def use(self, stream_profile : StreamProfile, stream : Stream = None) -> None:
+
+        for vsp_other in self:
+
+            if stream_profile.get_frame() == vsp_other.get_frame():
+                # duplicate frame (differing by frame rate and format)
+                raise RuntimeError("Video stream profiles represent same frame are not allowed.")
+    
         self._stream_map[stream_profile] = stream
 
 
@@ -36,14 +53,6 @@ class PrivateConfigMixin(PublicConfigMixin):
 
     def clear(self) -> None:
         self._stream_map.clear()
-
-
-class SensorConfig(PrivateConfigMixin):
-
-    def __init__(self, stream_map : dict[StreamProfile, Stream] = None):
-
-        # initialize the stream map
-        self._stream_map = {} if stream_map is None else stream_map
 
 
     def copy(self) -> SensorConfig:
