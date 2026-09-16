@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
+from dataclasses import dataclass, replace
+from enum import Enum, auto
 
 
 class StreamFormat(Enum):
@@ -43,23 +43,53 @@ class StreamFormat(Enum):
     NV12 = "NV12"
 
 
-@dataclass
+class StreamType(Enum):
+    COLOR = "color"
+    DEPTH = "depth"
+    INFRARED = "infrared"
+    FISHEYE = "fisheye"
+    MOTION = "motion"
+    GYRO = "gyro"
+    ACCEL = "accel"
+    CONFIDENCE = "confidence"
+    POSE = "pose"
+
+
+@dataclass(frozen=True)
 class StreamProfile:
-    format : StreamFormat
-
-
-@dataclass
-class VideoStreamProfile(StreamProfile):
-
-    width : int
-    height : int
+    stream_type : StreamType
+    format : StreamFormat | None
     fps : int
 
-    def __hash__(self):
-        return hash((
-            self.width, self.height,
-            self.fps, self.format
-            ))
+    def unformatted(self):
+        return replace(self, format=None)
 
+    def get_frame(self):
+        raise NotImplementedError()
+
+
+@dataclass(frozen=True)
+class VideoFrame:
+    width : int
+    height : int
+
+
+@dataclass(frozen=True)
+class VideoStreamProfile(StreamProfile, VideoFrame):
+
+    def get_frame(self):
+        return VideoFrame(
+            width=self.width,
+            height=self.height
+            )
+
+
+VIDEO_STREAMS = [
+    StreamType.COLOR,
+    StreamType.DEPTH,
+    StreamType.INFRARED,
+    StreamType.FISHEYE,
+    StreamType.CONFIDENCE
+]
 
 # TODO: add more implementations for other stream types
