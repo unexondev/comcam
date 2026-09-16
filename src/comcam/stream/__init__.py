@@ -1,14 +1,16 @@
 from .stream import Stream
 from .profile import (
     StreamProfile,
+    VideoStreamProfile,
     StreamFormat,
-    VideoStreamProfile
+    StreamType
 )
 
 
 __all__ = [
     "Stream",
     "StreamProfile",
+    "VideoStreamProfile",
     "StreamFormat",
-    "VideoStreamProfile"
+    "StreamType"
 ]
