@@ -1,14 +1,15 @@
 import pytest
+
 from comcam.pipeline import Pipeline, PipelineOptions
-from comcam.stream import VideoStreamProfile, StreamFormat
+from comcam.stream import StreamProfile
+from comcam.stream.profile.lifter.impl.realsense import RSProfileLifter
 from comcam.util.formatter.impl.realsense import RSFormatter
 
 from pyrealsense2 import context as rs2_context
-from pyrealsense2 import video_stream_profile as rs2_video_stream_profile
 
 
 @pytest.fixture
-def context():
+def context() -> rs2_context:
 
     ctx = rs2_context()
     if not ctx.sensors:
@@ -18,45 +19,56 @@ def context():
 
 
 @pytest.fixture
-def stream_profiles_by_same_sensor(context : rs2_context):
+def sensor_with_multiple_profiles(context : rs2_context):
 
     for sensor in context.sensors:
 
-        vsps = []
+        stream_profiles : set[StreamProfile] = set()
 
-        for profile in sensor.profiles:
-            if not profile.is_video_stream_profile():
+        for prf_sensor in sensor.profiles:
+
+            prf_stream = None
+            try:
+                prf_stream = RSProfileLifter.lift(prf_sensor)
+            except NotImplementedError:
                 continue
-            profile : rs2_video_stream_profile = profile.as_video_stream_profile()
-            for fmt in StreamFormat:
-                if RSFormatter.convertible(profile.format(), fmt):
-                    vsps.append(VideoStreamProfile(
-                        format=fmt,
-                        width=profile.width(), 
-                        height=profile.height(),
-                        fps=profile.fps()
-                    ))
-                    break
 
-        if len(vsps) > 1:
-            return (sensor, vsps)
+            if not RSFormatter.convertible(prf_sensor.format()):
+                continue
 
-    pytest.skip("No sensor with multiple video stream profile support could be found.")
+            cvts = RSFormatter.get_converters(prf_sensor)
+
+            fmt_to, converter = next(iter(cvts))
+
+            prf_stream.format = fmt_to # set format
+
+            if any(prf_stream.get_frame() == sp_saved.get_frame() for sp_saved in stream_profiles):
+                # we already have equivalent, skip it.
+                continue
+
+            stream_profiles.add(prf_stream)
+
+        if len(stream_profiles) > 1:
+
+            return (sensor, stream_profiles)
+
+    pytest.skip("No sensors supporting multiple stream profiles.")
 
 
-def test_pipeline(stream_profiles_by_same_sensor):
+def test_multi_stream_pipeline(sensor_with_multiple_profiles):
     """
-    Integration test covering a complete real-world pipeline scenario.
+    Integration test covering multiple stream
+    profiles are being produced by the same sensor.
     """
 
     ppl = Pipeline(
         PipelineOptions()
         )
 
-    sensor, vsps = stream_profiles_by_same_sensor
+    sensor, stream_profiles = sensor_with_multiple_profiles
 
-    stream_0 = ppl.create_stream(vsps[0], sensor)
-    stream_1 = ppl.create_stream(vsps[1], sensor)
+    stream_0 = ppl.create_stream(stream_profiles[0], sensor)
+    stream_1 = ppl.create_stream(stream_profiles[1], sensor)
 
     assert stream_0 is not stream_1
 

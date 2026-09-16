@@ -1,5 +1,5 @@
 from comcam.util.resolver import SensorResolver
-from comcam.stream import VideoStreamProfile, StreamFormat
+from comcam.stream import VideoStreamProfile, StreamFormat, StreamType
 
 
 def test_custom_resolver():
@@ -22,8 +22,22 @@ def test_custom_resolver():
 
     SensorResolver.register("test", resolve)
 
-    vsp_rgb8 = VideoStreamProfile(StreamFormat.RGB8, 1920, 1080, 60)
-    vsp_rgba8 = VideoStreamProfile(StreamFormat.RGBA8, 600, 400, 30)
+    vsp_rgb8 = VideoStreamProfile(
+                    stream_type=StreamType.COLOR,
+                    format=StreamFormat.RGB8,
+                    width=1920,
+                    height=1080,
+                    fps=60
+                    )
+    vsp_rgba8 = VideoStreamProfile(
+                    stream_type=StreamType.COLOR,
+                    format=StreamFormat.RGBA8,
+                    width=600,
+                    height=400,
+                    fps=30
+                    )
 
-    assert next(SensorResolver.resolve(vsp_rgb8)) == sensor_rgb8
+    # with api name is given
+    assert next(SensorResolver.resolve(vsp_rgb8, api_name="test")) == sensor_rgb8
+    # without api name is given
     assert next(SensorResolver.resolve(vsp_rgba8)) == sensor_rgba8

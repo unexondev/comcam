@@ -2,7 +2,7 @@ import pytest
 
 from comcam.pipeline import Pipeline, PipelineOptions
 from comcam.core.sensor import Sensor, DeviceDesc, SensorOptions, SensorState
-from comcam.stream import VideoStreamProfile, StreamFormat
+from comcam.stream import VideoStreamProfile, StreamFormat, StreamType
 
 class FakeSensor(Sensor):
 
@@ -34,7 +34,13 @@ def test_common_flow():
     assert not ppl.alive()
 
     sensor_mock = FakeSensor()
-    vsp = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
+    vsp = VideoStreamProfile(
+        stream_type=StreamType.COLOR,
+        format=StreamFormat.RAW8,
+        width=1920,
+        height=1080,
+        fps=60
+        )
 
     ppl.create_stream(vsp, sensor=sensor_mock)
 
@@ -62,7 +68,13 @@ def test_dupl_config():
 
     sensor_mock_old = FakeSensor()
     sensor_mock_repl = FakeSensor()
-    vsp = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
+    vsp = VideoStreamProfile(
+        stream_type=StreamType.COLOR,
+        format=StreamFormat.RAW8,
+        width=1920,
+        height=1080,
+        fps=60
+        )
 
     ppl.create_stream(vsp, sensor=sensor_mock_old)
     ppl.create_stream(vsp, sensor=sensor_mock_old)
@@ -91,7 +103,13 @@ def test_with_auto_resolve():
         resolver=FakeResolver([ FakeSensor() ])
         )
 
-    vsp = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
+    vsp = VideoStreamProfile(
+        stream_type=StreamType.COLOR,
+        format=StreamFormat.RAW8,
+        width=1920,
+        height=1080,
+        fps=60
+        )
 
     with pytest.raises(RuntimeError):
         ppl.start()
@@ -113,9 +131,27 @@ def test_pipeline_sensor_scope():
         def resolve(self, stream_profile):
             yield from self.iter_sensors
 
-    sensor_0, vsp_0 = FakeSensor(), VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
-    sensor_1, vsp_1 = FakeSensor(), VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 30)
-    sensor_2, vsp_2 = FakeSensor(), VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 6)
+    sensor_0, vsp_0 = FakeSensor(), VideoStreamProfile(
+                                        stream_type=StreamType.COLOR,
+                                        format=StreamFormat.RAW8,
+                                        width=1920,
+                                        height=1080,
+                                        fps=60
+                                        )
+    sensor_1, vsp_1 = FakeSensor(), VideoStreamProfile(
+                                        stream_type=StreamType.COLOR,
+                                        format=StreamFormat.RAW8,
+                                        width=1920,
+                                        height=1080,
+                                        fps=30
+                                        )
+    sensor_2, vsp_2 = FakeSensor(), VideoStreamProfile(
+                                        stream_type=StreamType.COLOR,
+                                        format=StreamFormat.RAW8,
+                                        width=1920,
+                                        height=1080,
+                                        fps=6
+                                        )
 
     ppl = Pipeline(
         PipelineOptions(),
@@ -171,7 +207,13 @@ def test_stream_supported_by_multiple_sensors():
     sensor_0 = FakeSensor()
     sensor_1 = FakeSensor()
 
-    vsp = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
+    vsp = VideoStreamProfile(
+            stream_type=StreamType.COLOR,
+            format=StreamFormat.RAW8,
+            width=1920,
+            height=1080,
+            fps=60
+            )
 
     ppl = Pipeline(
         PipelineOptions(),
@@ -217,8 +259,20 @@ def test_sensor_streams_multiple_profiles():
 
     sensor = FakeSensor()
 
-    vsp_0 = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 60)
-    vsp_1 = VideoStreamProfile(StreamFormat.RAW8, 1920, 1080, 30)
+    vsp_0 = VideoStreamProfile(
+                stream_type=StreamType.COLOR,
+                format=StreamFormat.RAW8,
+                width=1920,
+                height=1080,
+                fps=60
+                )
+    vsp_1 = VideoStreamProfile(
+                stream_type=StreamType.COLOR,
+                format=StreamFormat.RAW8,
+                width=600,
+                height=400,
+                fps=30
+                )
 
     ppl = Pipeline(
         PipelineOptions(),
