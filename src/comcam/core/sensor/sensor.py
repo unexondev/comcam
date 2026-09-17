@@ -102,6 +102,15 @@ class Sensor:
     Sensor Management APIs
     """
 
+    def supported_stream_profiles(self) -> list[StreamProfile]:
+        """
+        Get supported stream profiles by the sensor.
+
+        Returns:
+            A list of `StreamProfile` instances supported.
+        """
+        raise NotImplementedError()
+
     def open(self):
         """
         Open the sensor physically.

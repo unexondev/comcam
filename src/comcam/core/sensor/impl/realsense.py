@@ -74,6 +74,30 @@ class RSSensor(Sensor):
                  == other._sensor.get_info(rs2_camera_info.name))) 
 
 
+    def supported_stream_profiles(self):
+
+        stream_profiles = []
+
+        for rs_profile_supported in self._sensor.profiles:
+
+            converters = None
+            try:
+                converters = RSFormatter.get_converters(rs_profile_supported)
+            except RuntimeError:
+                continue
+
+            profile_supported = None
+            try:
+                profile_supported = RSProfileLifter.lift(rs_profile_supported)
+            except NotImplementedError:
+                continue
+
+            for fmt, converter in converters:
+                stream_profiles.append(replace(profile_supported, format=fmt))
+
+        return stream_profiles
+
+
     def open(self):
 
         with self._lock:
@@ -218,15 +242,17 @@ class RSSensor(Sensor):
 
     def _prepare_open(self):
 
+        profile_pairs_supported = self._supported_stream_profiles_pair()
+
         for profile_requested in self._conf.profiles_iter():
 
-            for rs_profile_supported in self._sensor.profiles:
+            for rs_profile_supported, profile_supported in profile_pairs_supported:
 
-                if self.rs_profile_matches(rs_profile_supported, profile_requested):
+                if profile_requested == profile_supported:
 
                     self._profile_map[rs_profile_supported] = profile_requested
 
-                    break # requested profile is mapped go next
+                    break
 
             else:
                 raise SPNotSupportedError(
@@ -238,8 +264,9 @@ class RSSensor(Sensor):
 
         with self._lock:
 
-            prf_stream = self._profile_map[frame.profile]
-            stream = self._conf.get_stream(prf_stream)
+            stream_profile = self._profile_map[frame.profile]
+
+            stream = self._conf.get_stream(stream_profile)
 
             data = frame.get_data() # get data
 
@@ -247,30 +274,30 @@ class RSSensor(Sensor):
                 RSFormatter.convert_to(
                     numpy.asanyarray(data), # convert to numpy array first
                     frame.profile.format(),
-                    self._profile_map[frame.profile].format
+                    stream_profile.format
                     )
                 ) # put data to stream
 
 
-    @staticmethod
-    def rs_profile_matches(rs_stream_profile : rs2_stream_profile,
-                           stream_profile : StreamProfile
-                           ) -> bool:
-        
-        fmt_rs = rs_stream_profile.format()
+    def _supported_stream_profiles_pair(self) -> list[tuple[rs2_stream_profile, StreamProfile]]:
 
-        sp_lifted = None
-        try:
-            sp_lifted = RSProfileLifter.lift(rs_stream_profile)
-        except NotImplementedError:
-            return False
+        stream_profiles_pair = []
 
-        # RS profile matches with stream profile if:
-        # - both have same frame rate &
-        # - both represents same frame &
-        # - RS profile's format is convertable to requested profile's
-        return (
-            sp_lifted.fps == rs_stream_profile.fps() and
-            sp_lifted.get_frame() == stream_profile.get_frame() and
-            RSFormatter.convertible_to(fmt_rs, stream_profile.format)
-            )
+        for rs_profile_supported in self._sensor.profiles:
+
+            converters = None
+            try:
+                converters = RSFormatter.get_converters(rs_profile_supported)
+            except RuntimeError:
+                continue
+
+            profile_supported = None
+            try:
+                profile_supported = RSProfileLifter.lift(rs_profile_supported)
+            except NotImplementedError:
+                continue
+
+            for fmt, converter in converters:
+                stream_profiles_pair.append((rs_profile_supported, replace(profile_supported, format=fmt)))
+
+        return stream_profiles_pair

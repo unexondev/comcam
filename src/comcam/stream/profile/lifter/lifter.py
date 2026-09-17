@@ -17,7 +17,7 @@ class ProfileLifter:
         of backend-specific stream profile.
 
         Args:
-            backend_profile: A `StreamProfile` instance to be lifted.
+            backend_profile: A backend stream profile to be lifted.
 
         Returns:
             The equivalent `StreamProfile` instance after lifting.

@@ -1,4 +1,5 @@
 from comcam.util.resolver import SensorResolver
+from comcam.util.resolver.resolver import SensorResolverInterface
 from comcam.stream import VideoStreamProfile, StreamFormat, StreamType
 
 
@@ -9,18 +10,21 @@ def test_custom_resolver():
 
     sensor_rgb8, sensor_rgba8 = FakeSensor(), FakeSensor()
 
-    def resolve(stream_profile):
+    class FakeResolver(SensorResolverInterface):
 
-        if not isinstance(stream_profile, VideoStreamProfile):
-            return
+        @classmethod
+        def resolve(cls, stream_profile):
 
-        if stream_profile.format == StreamFormat.RGB8:
-            yield sensor_rgb8
+            if not isinstance(stream_profile, VideoStreamProfile):
+                return
 
-        elif stream_profile.format == StreamFormat.RGBA8:
-            yield sensor_rgba8
+            if stream_profile.format == StreamFormat.RGB8:
+                yield sensor_rgb8
 
-    SensorResolver.register("test", resolve)
+            elif stream_profile.format == StreamFormat.RGBA8:
+                yield sensor_rgba8
+
+    SensorResolver.register("test", FakeResolver)
 
     vsp_rgb8 = VideoStreamProfile(
                     stream_type=StreamType.COLOR,
