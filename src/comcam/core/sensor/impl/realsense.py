@@ -71,7 +71,7 @@ class RSSensor(Sensor):
 
     def supported_stream_profiles(self):
 
-        stream_profiles = []
+        stream_profiles = set()
 
         for rs_profile_supported in self._sensor.profiles:
 
@@ -88,7 +88,7 @@ class RSSensor(Sensor):
                 continue
 
             for fmt, converter in converters:
-                stream_profiles.append(replace(profile_supported, format=fmt))
+                stream_profiles.add(replace(profile_supported, format=fmt))
 
         return stream_profiles
 

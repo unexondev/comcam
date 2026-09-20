@@ -102,7 +102,7 @@ class Sensor:
     Sensor Management APIs
     """
 
-    def supported_stream_profiles(self) -> list[StreamProfile]:
+    def supported_stream_profiles(self) -> set[StreamProfile]:
         """
         Get supported stream profiles by the sensor.
 
