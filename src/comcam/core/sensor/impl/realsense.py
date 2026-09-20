@@ -58,10 +58,7 @@ class RSSensor(Sensor):
 
     def __hash__(self):
 
-        return hash((
-            self.device,
-            self._sensor.get_info(rs2_camera_info.name) # name of sensor, not device
-        ))
+        return hash((self.device))
 
 
     def __eq__(self, other):
@@ -69,9 +66,7 @@ class RSSensor(Sensor):
         if not isinstance(other, RSSensor):
             return NotImplemented
 
-        return (self.device == other.device and
-                (self._sensor.get_info(rs2_camera_info.name) 
-                 == other._sensor.get_info(rs2_camera_info.name))) 
+        return (self.device == other.device) # TODO
 
 
     def supported_stream_profiles(self):

@@ -33,7 +33,10 @@ class RSSensorResolver(SensorResolverInterface):
             for sensor in device.sensors:
 
                 desc = DeviceDesc(
-                    product_name=device.get_info(rs_camera_info.name),
+                    product_name="%s - %s" % (
+                        device.get_info(rs_camera_info.name),
+                        sensor.get_info(rs_camera_info.name)
+                        ),
                     serial_number=sensor.get_info(rs_camera_info.serial_number)
                 )
 
