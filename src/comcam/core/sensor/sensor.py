@@ -13,9 +13,9 @@ class SensorOptions:
 
 
 class SensorState(Enum):
-    CLOSED = 0,
-    OPENED = 1,
-    STREAMING = 2,
+    CLOSED = 0
+    OPENED = 1
+    STREAMING = 2
     ERRORED = 3
 
 
