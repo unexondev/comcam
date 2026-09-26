@@ -3,8 +3,9 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from threading import Lock # for thread-safe
 
-from comcam.stream import Stream, StreamProfile
+from comcam.stream import StreamProfile
 from .config import SensorConfig, SensorConfigView
+from .exceptions import *
 
 
 @dataclass
@@ -124,7 +125,7 @@ class Sensor:
         self._state = SensorState.OPENED
 
 
-    def close(self):
+    def close(self, stop_before=True):
         """
         Close the sensor physically.
 
@@ -134,7 +135,7 @@ class Sensor:
         self._state = SensorState.CLOSED
 
 
-    def start(self):
+    def start(self, open_before=True):
         """
         Start the sensor (start streaming) physically.
 
@@ -180,10 +181,18 @@ class Sensor:
     def _sanity_check_open(self):
 
         if not self._configured():
-            raise RuntimeError(
+            raise SensorStateError(
                 "Sensor must be configured before opening."
                 )
         
+
+    def _sanity_check_operational(self):
+
+        if self._state == SensorState.ERRORED:
+            raise SensorStateError(
+                "Unable to access sensor since it has been already errored."
+                )
+
 
     def _configured(self):
         return not self._conf.is_empty()
