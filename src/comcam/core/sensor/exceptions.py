@@ -32,3 +32,13 @@ class SPNotSupportedError(SensorError):
     """
     Raised when stream profile is not supported by the sensor.
     """
+
+class SensorUnconfiguredError(SensorError):
+    """
+    Raised when attempted to open a sensor that is not configured.
+    """
+
+class SensorStateError(SensorError):
+    """
+    Raised when sensor state is unexpected to perform that operation.
+    """
