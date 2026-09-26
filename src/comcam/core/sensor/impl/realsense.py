@@ -96,105 +96,29 @@ class RSSensor(Sensor):
     def open(self):
 
         with self._lock:
-
-            # check if sensor is configured
-            self._sanity_check_open()
-
-            # check if already open
-            if self._state != SensorState.CLOSED:
-                raise RuntimeError(
-                    "Sensor must be closed before opening."
-                    )
-
-            # prepare to open
-            self._prepare_open()
-
-            # get realsense stream profiles
-            profiles_rs = list(self._profile_map.keys())
-            if not profiles_rs:
-                # fake (empty) stream can occur,
-                # we don't want that
-                raise RuntimeError(
-                    "No stream profiles are passed, please configure sensor properly."
-                    )
-
-            # open the sensor
-            try:
-                self._sensor.open(profiles=profiles_rs)
-                super().open()
-
-            except RuntimeError as err:
-                self._fail()
-                raise SensorOpenError(
-                    "Failed to open RealSense sensor."
-                    ) from err 
+            self._open()
 
 
-    def close(self):
+    def close(self, stop_before : bool = True):
 
         with self._lock:
-
-            if self._state != SensorState.OPENED:
-                raise RuntimeError(
-                    "Sensor must be opened before closing."
-                    )
-
-            # close the sensor directly
-            try:
-                self._sensor.close()
-                super().close()
-
-            except RuntimeError as err:
-                self._fail()
-                raise SensorCloseError(
-                    "Failed to close RealSense sensor."
-                    ) from err
-
-
-    def start(self):
-
-        with self._lock:
-
-            if self._state != SensorState.OPENED:
-                raise RuntimeError(
-                    "Sensor must be opened before starting."
-                    )
-
-            # try to start the sensor
-            try:
-                # start sensor with our producer callback
-                self._sensor.start(
-                    callback=self._produce_stream_data
+            self._close(
+                stop_before=stop_before
                 )
 
-                super().start()
 
-            except RuntimeError as err:
-                self._fail()
-                raise SensorStartError(
-                    "Failed to start RealSense sensor."
-                    ) from err 
+    def start(self, open_before : bool = True):
+
+        with self._lock:
+            self._start(
+                open_before=open_before
+                )
 
 
     def stop(self):
 
         with self._lock:
-
-            if self._state != SensorState.CLOSED:
-                raise RuntimeError(
-                    "Sensor must be started before stopping."
-                    )
-
-            # stop the sensor directly
-            try:
-                self._sensor.stop()
-                super().stop()
-
-            except RuntimeError as err:
-                self._fail()
-                raise SensorStopError(
-                    "Failed to stop RealSense sensor."
-                    ) from err
+            self._stop()
 
 
     def is_healthy(self):
@@ -233,6 +157,129 @@ class RSSensor(Sensor):
                         return False
 
             return True
+
+
+    def _open(self):
+
+        state = self._state
+
+        # check if sensor is configured
+        self._sanity_check_open()
+
+        # check if sensor is operational
+        self._sanity_check_operational()
+
+        # check if already open
+        if state != SensorState.CLOSED:
+            raise SensorStateError(
+                "Sensor cannot be opened in its current state: %r" % state
+                )
+
+        # prepare to open
+        self._prepare_open()
+
+        # get realsense stream profiles
+        profiles_rs = list(self._profile_map.keys())
+        if not profiles_rs:
+            # fake (empty) stream can occur,
+            # we don't want that
+            raise SensorUnconfiguredError(
+                "No stream profiles are passed, please configure sensor properly."
+                )
+
+        # open the sensor
+        try:
+            self._sensor.open(profiles=profiles_rs)
+            super().open()
+
+        except RuntimeError as err:
+            self._fail()
+            raise SensorOpenError(
+                "Failed to open RealSense sensor."
+                ) from err 
+
+
+    def _close(self, stop_before):
+
+        state = self._state
+
+        # check if sensor is operational
+        self._sanity_check_operational()
+
+        if stop_before and state == SensorState.STREAMING:
+            # stop the sensor first
+            self._stop()
+
+        if state != SensorState.OPENED:
+            raise SensorStateError(
+                "Sensor cannot be closed in its current state: %r" % state
+                )
+
+        # close the sensor now
+        try:
+            self._sensor.close()
+            super().close()
+
+        except RuntimeError as err:
+            self._fail()
+            raise SensorCloseError(
+                "Failed to close RealSense sensor."
+                ) from err
+
+
+    def _start(self, open_before):
+
+        state = self._state
+
+        # check if sensor is operational
+        self._sanity_check_operational()
+
+        if open_before and state == SensorState.CLOSED:
+            # open the sensor first
+            self._open()
+
+        if state != SensorState.OPENED:
+            raise SensorStateError(
+                "Sensor cannot be started in its current state: %r" % state
+                )
+
+        # start the sensor now
+        try:
+            self._sensor.start(
+                callback=self._produce_stream_data
+                )
+            super().start()
+
+        except RuntimeError as err:
+            self._fail()
+            raise SensorStartError(
+                "Failed to start RealSense sensor."
+                ) from err
+
+
+    def _stop(self):
+
+        state = self._state
+
+        # check if sensor is operational
+        self._sanity_check_operational()
+
+        # check if already open
+        if state != SensorState.STREAMING:
+            raise SensorStateError(
+                "Sensor cannot be stopped in its current state: %r" % state
+                )
+
+        # stop the sensor
+        try:
+            self._sensor.stop()
+            super().open()
+
+        except RuntimeError as err:
+            self._fail()
+            raise SensorStopError(
+                "Failed to stop RealSense sensor."
+                ) from err 
 
 
     def _prepare_open(self):
