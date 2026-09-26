@@ -46,7 +46,7 @@ class Stream:
             if wait_ms <= 0:
                 return False
 
-            self._cond.wait(timeout=wait_ms)
+            self._cond.wait(timeout=wait_ms/1000)
 
         return True
 
@@ -90,7 +90,7 @@ class Stream:
             return self._queue.popleft()
 
 
-    def wait(self, timeout_ms : int = 5000) -> NDArray:
+    def wait(self, timeout_ms : int = 5000) -> NDArray | None:
         """
         Pops recent data from stream or waits for new data to be arrived.
         
