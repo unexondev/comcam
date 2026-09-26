@@ -8,6 +8,8 @@ from comcam.stream.stream import Stream
 
 class PublicConfigMixin:
 
+    _stream_map : dict[StreamProfile, Stream]
+
     def get_stream(self, stream_profile : StreamProfile) -> Stream:
         return self._stream_map[stream_profile]
 
@@ -25,7 +27,7 @@ class PublicConfigMixin:
 
 
     def __iter__(self):
-        return self.profiles_iter()
+        return iter(self._stream_map.items())
 
 
 class SensorConfig(PublicConfigMixin):
