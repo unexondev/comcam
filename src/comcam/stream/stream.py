@@ -15,9 +15,9 @@ class Stream:
     TODO add docstring
     """
 
-    def __init__(self):
+    def __init__(self, queue_max_length : int = 1):
 
-        self._queue : deque[NDArray] = deque()
+        self._queue : deque[NDArray] = deque(maxlen=queue_max_length)
 
         self._cond = Condition() # for thread-safe push/pops
 
